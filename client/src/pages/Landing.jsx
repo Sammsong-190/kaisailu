@@ -75,8 +75,8 @@ export default function Landing() {
       </nav>
 
       {err ? (
-        <div className="banner-err">
-          API unreachable — start Express: <code>cd server &amp;&amp; npm install &amp;&amp; npm run dev</code> ({err})
+        <div className="banner-err" role="alert">
+          {err}
         </div>
       ) : null}
 

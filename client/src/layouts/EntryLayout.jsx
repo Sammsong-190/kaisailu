@@ -26,8 +26,8 @@ export default function EntryLayout({ children }) {
 
       <main className="entry-main">
         {err ? (
-          <div className="banner-err entry-api-banner">
-            API unreachable — start Express: <code>cd server &amp;&amp; npm install &amp;&amp; npm run dev</code> ({err})
+          <div className="banner-err entry-api-banner" role="alert">
+            {err}
           </div>
         ) : null}
         {children}

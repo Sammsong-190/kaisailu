@@ -37,7 +37,7 @@ export function ApiProvider({ children }) {
       const head = text.trimStart();
       if (head.startsWith("<")) {
         throw new Error(
-          "API unreachable — got HTML instead of JSON (static hosts need VITE_API_BASE_URL to your Express URL; locally run `npm run dev` so /api proxies to port 8788). See README.",
+          "Backend returned HTML, not JSON. Local: repo root `npm run dev`. Static host (e.g. Vercel): set `VITE_API_BASE_URL` to your deployed Express HTTPS origin (no trailing slash), then redeploy. See README.",
         );
       }
       setSnapshot(JSON.parse(text));
@@ -111,7 +111,7 @@ export function ApiProvider({ children }) {
         data = {};
         if (raw.trimStart().startsWith("<")) {
           throw new Error(
-            "API unreachable — Express returned HTML (usually missing VITE_API_BASE_URL on the static host or backend down). See README.",
+            "Backend returned HTML, not JSON. Set `VITE_API_BASE_URL` on the front-end build host, wait for APIs to wake up if serverless sleeps, see README.",
           );
         }
       }

@@ -124,59 +124,29 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="roles" className="section-pad role-cards-grid">
+      <section id="workflow" className="section-pad landing-flow-section">
         <div className="section-head-inline">
-          <span className="eyebrow darkbg">Three portals</span>
-          <h2>Powered by REST</h2>
+          <span className="eyebrow darkbg">Workflow</span>
+          <h2>Signals assist — people decide</h2>
+          <p className="muted section-lead-narrow">
+            Campus-facing cues roll up into counselor-readable hints. Nothing escalates automatically; tiers unlock only after someone on staff takes action.
+          </p>
         </div>
-        <div className="role-cards">
-          <article className="role-card card-glass">
-            <div className="role-icon emerald">S</div>
-            <h3>Student</h3>
-            <p>Consent, check-ins, non-diagnostic report, booking placeholder.</p>
-            {!authenticated ? (
-              <Link className="btn primary full" to="/register">
-                Register
-              </Link>
-            ) : user.role === "STUDENT" ? (
-              <Link className="btn primary full" to="/app/student/home">
-                Open student portal
-              </Link>
-            ) : (
-              <p className="muted tiny-help">Switch account to register or use the student portal as a student.</p>
-            )}
+        <div className="landing-flow-grid">
+          <article className="flow-stage card-glass">
+            <span className="flow-num">1</span>
+            <h3>Observe &amp; explain</h3>
+            <p className="muted">Behavioral proxies feed a transparent scorecard so rationale stays inspectable.</p>
           </article>
-          <article className="role-card card-glass featured">
-            <div className="role-icon amber">C</div>
-            <h3>Counselor</h3>
-            <p>Confirm or dismiss alerts, then choose Level 1–3.</p>
-            {!authenticated ? (
-              <Link className="btn primary full" to="/register/counselor">
-                Counselor registration
-              </Link>
-            ) : user.role === "COUNSELOR" ? (
-              <Link className="btn primary full" to="/app/counselor/desk">
-                Open counselor desk
-              </Link>
-            ) : (
-              <p className="muted tiny-help">Counselors: sign out above to register another role or open the counselor sign-in screen.</p>
-            )}
+          <article className="flow-stage card-glass">
+            <span className="flow-num">2</span>
+            <h3>Human review gate</h3>
+            <p className="muted">Queues surface anomalies; counselors confirm or dismiss before any intervention path is suggested.</p>
           </article>
-          <article className="role-card card-glass">
-            <div className="role-icon violet">A</div>
-            <h3>Admin</h3>
-            <p>Thresholds, CSV import, audit log excerpt.</p>
-            {!authenticated ? (
-              <Link className="btn secondary full" to="/login">
-                Admin sign in
-              </Link>
-            ) : user.role === "ADMIN" ? (
-              <Link className="btn primary full" to="/app/admin/dashboard">
-                Open admin console
-              </Link>
-            ) : (
-              <p className="muted tiny-help">Admins sign in with a seeded admin account.</p>
-            )}
+          <article className="flow-stage card-glass">
+            <span className="flow-num">3</span>
+            <h3>Tiered follow-up</h3>
+            <p className="muted">Levels 1–3 model intensity — from lightweight resources through direct outreach — all counselor-led in this demo.</p>
           </article>
         </div>
       </section>

@@ -2,29 +2,33 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { useApi } from "../ApiProvider.jsx";
 import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
-
+import StudentWellnessCharts from "../components/StudentWellnessCharts.jsx";
 function Overview() {
-  const { snapshot } = useApi();
+  const { snapshot, trend } = useApi();
   if (!snapshot) return null;
   const sid = snapshot.session.studentId;
   const s = snapshot.students.find((x) => x.id === sid);
   if (!s) return <p className="muted">No linked student profile found.</p>;
+  const checkinEntries = snapshot.checkins[sid] || [];
   return (
     <>
-      <div className="spa-card">
-        <h2>Hi, {s.name}</h2>
-        <span className={`pill ${s.risk.tone}`}>
-          {!s.consent ? "Consent blocked" : `${s.risk.level}${s.risk.score != null ? ` · ${s.risk.score}` : ""}`}
-        </span>
+      <div className="student-overview-row">
+        <div className="spa-card">
+          <h2>Hi, {s.name}</h2>
+          <span className={`pill ${s.risk.tone}`}>
+            {!s.consent ? "Consent blocked" : `${s.risk.level}${s.risk.score != null ? ` · ${s.risk.score}` : ""}`}
+          </span>
+        </div>
+        <div className="spa-card">
+          <h4>Today</h4>
+          <ul className="spa-list">
+            <li>Check-in mood & stress</li>
+            <li>Review consent settings</li>
+            <li>Resources if overwhelmed</li>
+          </ul>
+        </div>
       </div>
-      <div className="spa-card">
-        <h4>Today</h4>
-        <ul className="spa-list">
-          <li>Check-in mood & stress</li>
-          <li>Review consent settings</li>
-          <li>Resources if overwhelmed</li>
-        </ul>
-      </div>
+      <StudentWellnessCharts student={s} checkins={checkinEntries} trend={trend} showCampusTrend />
     </>
   );
 }
@@ -113,7 +117,7 @@ function ConsentPage() {
 }
 
 function ReportPage() {
-  const { snapshot } = useApi();
+  const { snapshot, trend } = useApi();
   if (!snapshot) return null;
   const sid = snapshot.session.studentId;
   const s = snapshot.students.find((x) => x.id === sid);
@@ -128,20 +132,25 @@ function ReportPage() {
       <div className="spa-card">
         <h3>Personal trends</h3>
         <p>Educational only — not a diagnosis.</p>
-        <p className="muted">Recent stress avg: {avg}</p>
+        <p className="muted">Recent stress avg (check-ins): {avg}</p>
       </div>
-      <div className="spa-card data-grid spa-dgrid">
-        {[
-          ["LMS", s.lms],
-          ["Library", s.library],
-          ["Dining", s.dining],
-          ["Gym", s.gym],
-        ].map(([k, v]) => (
-          <div key={k}>
-            <span>{k}</span>
-            <b>{v}</b>
-          </div>
-        ))}
+      <StudentWellnessCharts student={s} checkins={entries} trend={trend} showCampusTrend={false} />
+      <div className="spa-card">
+        <h4>Recorded signals</h4>
+        <div className="data-grid spa-dgrid">
+          {[
+            ["LMS", s.lms],
+            ["Library", s.library],
+            ["Dining", s.dining],
+            ["Gym", s.gym],
+            ["Social", s.social],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <span>{k}</span>
+              <b>{v}</b>
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );

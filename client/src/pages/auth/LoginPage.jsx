@@ -88,7 +88,7 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-footer muted">
-          No account? <Link to="/">Student registration</Link>
+          No account? <Link to="/register">Student registration</Link>
           {" · "}
           <Link to="/register/counselor">Counselor registration</Link>
         </div>

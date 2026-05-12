@@ -33,7 +33,7 @@ export default function CounselorRegisterPage() {
         <h2>Counselor registration</h2>
         <p className="muted">Counselor accounts access the alert desk and case follow-up. No automated intervention.</p>
         <p className="muted tiny-help">
-          Students should use <Link to="/">student registration</Link> instead.
+          Students should use <Link to="/register">student registration</Link> instead.
         </p>
         {msg ? <div className="banner-err inline-banner">{msg}</div> : null}
 
@@ -57,7 +57,7 @@ export default function CounselorRegisterPage() {
 
         <div className="auth-footer muted">
           Are you a student?
-          <Link to="/"> Student registration</Link>
+          <Link to="/register">Student registration</Link>
           {" · "}
           <Link to="/login?kind=counselor">Sign in</Link>
         </div>

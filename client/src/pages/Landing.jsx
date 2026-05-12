@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useApi } from "../ApiProvider.jsx";
-import StudentRegisterForm from "../components/StudentRegisterForm.jsx";
 
 /** @param {string} role */
 function portalPathForRole(role) {
@@ -39,11 +38,6 @@ export default function Landing() {
         <Link className="logo" to="/">
           <span className="logo-mark">◇</span>SCWIS
         </Link>
-        {!authenticated ? (
-          <div className="navlinks">
-            <a href="#register-auth">Registration &amp; sign in</a>
-          </div>
-        ) : null}
         <div className="nav-cta">
           {authenticated ? (
             <>
@@ -60,9 +54,9 @@ export default function Landing() {
               <Link className="ghost-link" to="/login">
                 Sign in
               </Link>
-              <a className="ghost-link" href="#register-auth">
+              <Link className="ghost-link" to="/register">
                 Student registration
-              </a>
+              </Link>
               <Link className="ghost-link" to="/register/counselor">
                 Counselor registration
               </Link>
@@ -101,9 +95,9 @@ export default function Landing() {
               </>
             ) : (
               <>
-                <a className="btn primary" href="#register-auth">
+                <Link className="btn primary" to="/register">
                   Student registration
-                </a>
+                </Link>
                 <Link className="btn secondary" to="/register/counselor">
                   Counselor registration
                 </Link>
@@ -141,9 +135,9 @@ export default function Landing() {
             <h3>Student</h3>
             <p>Consent, check-ins, non-diagnostic report, booking placeholder.</p>
             {!authenticated ? (
-              <a className="btn primary full" href="#register-auth">
+              <Link className="btn primary full" to="/register">
                 Register
-              </a>
+              </Link>
             ) : user.role === "STUDENT" ? (
               <Link className="btn primary full" to="/app/student/home">
                 Open student portal
@@ -185,50 +179,6 @@ export default function Landing() {
             )}
           </article>
         </div>
-      </section>
-
-      <section id="register-auth" className="section-pad landing-auth-strip">
-        <div className="section-head-inline">
-          <span className="eyebrow darkbg">Accounts</span>
-          <h2>{authenticated ? "Your session" : "Registration & sign in"}</h2>
-        </div>
-        {authenticated ? (
-          <div className="auth-card spa-card landing-signed-in-panel">
-            <p className="auth-user-chip-inline">
-              Signed in as <strong>{user.displayName || user.email}</strong>
-              {" · "}
-              <span className="muted">{user.role}</span>
-            </p>
-            <p className="muted">Use Open portal above or Sign out when you finish.</p>
-            <div className="landing-signed-in-actions">
-              <Link className="btn primary" to={portalPath}>
-                Open portal
-              </Link>
-              <button type="button" className="btn ghost" onClick={signOut}>
-                Sign out
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="landing-auth-grid">
-            <StudentRegisterForm />
-            <div className="auth-card spa-card landing-login-panel">
-              <h2>Sign in</h2>
-              <p className="muted">Already have an account? Sign in from a dedicated screen for security (password field and session handling).</p>
-              <div className="landing-login-actions">
-                <Link className="btn primary full" to="/login">
-                  Sign in
-                </Link>
-                <Link className="btn secondary full" to="/register/counselor">
-                  Counselor registration
-                </Link>
-              </div>
-              <p className="muted tiny-help landing-login-foot">
-                Already registered as a counselor? <Link to="/login?kind=counselor">Counselor sign in</Link>
-              </p>
-            </div>
-          </div>
-        )}
       </section>
 
       <footer className="site-footer">

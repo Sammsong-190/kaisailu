@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useApi } from "../ApiProvider.jsx";
 
-/** Student registration card (homepage and entry flows). */
+/** Student registration card (`/register` route). */
 export default function StudentRegisterForm() {
   const navigate = useNavigate();
   const { api, snapshot, loading } = useApi();

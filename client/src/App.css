@@ -834,8 +834,7 @@ code {
 }
 
 #overview,
-#roles,
-#register-auth {
+#roles {
   scroll-margin-top: 88px;
 }
 

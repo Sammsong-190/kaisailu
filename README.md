@@ -90,11 +90,21 @@ scwis-fullstack/
 
 ## 使用 Vercel 部署前端
 
-仓库根目录已有 `vercel.json`：只在 **`client/`** 里执行 `npm ci` 与 `npm run build`，输出 **`client/dist`**，避免默认在仓库根装依赖导致构建不符合预期。
+仓库根目录已有 `vercel.json`：只在 **`client/`** 里执行 `npm ci` 与 `npm run build`，输出 **`client/dist`**。
 
-在 [Vercel](https://vercel.com) 导入该 Git 仓库后，一般**不用**再在面板里改 Root Directory（保持仓库根即可）。若曾手动设为子目录，请改回根目录以使用本配置。
+在 **Vercel → Project → Settings → Environment Variables**（Production / Preview 按需）中添加：
 
-**注意**：Vercel 上仅为**静态前端**；`/api/*` 不会连到你本地的 Express，登录与数据接口需另部署后端（如 Railway / Render），或仅作静态演示。
+| 变量名 | 说明 |
+|--------|------|
+| `VITE_API_BASE_URL` | 你已部署好的 **Express 根地址**，**不要**尾斜杠。例：`https://scwis-api.onrender.com` |
+
+保存后重新 **Deploy**（该变量会在 `vite build` 时写入前端）。
+
+若不留此变量，浏览器仍会请求本站 `/api`，在纯静态托管上会得到 HTML，`Unexpected token '<'` 即为该现象。
+
+参考 `client/.env.example`。本地开发不要设置（或删掉），继续用根目录 **`npm run dev`** 自带的 `/api` 代理。
+
+**注意**：仓库里的 **Express + Prisma 需单独托管**（如 [Render](https://render.com/)、Railway）；服务端已启用 `cors({ origin: true })`，允许跨域前端调用。
 
 ## 生产部署注意
 

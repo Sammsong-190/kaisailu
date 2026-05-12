@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { apiUrl } from "./apiUrl.js";
 
 const STORAGE_KEY = "scwis_token";
 
@@ -30,9 +31,15 @@ export function ApiProvider({ children }) {
       setErr(null);
       const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
-      const r = await fetch("/api/state", { headers });
+      const r = await fetch(apiUrl("/api/state"), { headers });
       const text = await r.text();
       if (!r.ok) throw new Error(text || r.statusText);
+      const head = text.trimStart();
+      if (head.startsWith("<")) {
+        throw new Error(
+          "API unreachable — got HTML instead of JSON (static hosts need VITE_API_BASE_URL to your Express URL; locally run `npm run dev` so /api proxies to port 8788). See README.",
+        );
+      }
       setSnapshot(JSON.parse(text));
     } catch (e) {
       setErr(String(e.message));
@@ -43,7 +50,7 @@ export function ApiProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    fetch("/api/trend")
+    fetch(apiUrl("/api/trend"))
       .then((r) => r.json())
       .then(setTrend)
       .catch(() => {});
@@ -55,7 +62,7 @@ export function ApiProvider({ children }) {
       return;
     }
     let cancelled = false;
-    fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(apiUrl("/api/auth/me"), { headers: { Authorization: `Bearer ${token}` } })
       .then(async (r) => {
         if (!r.ok) throw new Error("session expired");
         return r.json();
@@ -94,7 +101,7 @@ export function ApiProvider({ children }) {
       const headers = { ...(isFormData ? bareAuthHeaders : authHeaders), ...extra };
       if (isFormData) delete headers["Content-Type"];
 
-      const r = await fetch(url, { ...rest, headers });
+      const r = await fetch(apiUrl(url), { ...rest, headers });
       const raw = await r.text();
       /** @type {Record<string, unknown>} */
       let data = {};
@@ -102,13 +109,18 @@ export function ApiProvider({ children }) {
         if (raw) data = JSON.parse(raw);
       } catch {
         data = {};
+        if (raw.trimStart().startsWith("<")) {
+          throw new Error(
+            "API unreachable — Express returned HTML (usually missing VITE_API_BASE_URL on the static host or backend down). See README.",
+          );
+        }
       }
       if (!r.ok) {
         const msgFromJson = typeof data.error === "string" ? data.error : "";
         if (r.status === 404)
           throw new Error(
             msgFromJson ||
-              "404: /api did not reach Express. Start the server on port 8788, use `npm run dev` at the repo root (client + server), or enable the same /api proxy for `vite preview`.",
+              "404: No backend on this origin. Use `npm run dev` locally, or set VITE_API_BASE_URL to your deployed API and rebuild.",
           );
         throw new Error(msgFromJson || raw.trim().slice(0, 280) || r.statusText);
       }
@@ -150,7 +162,7 @@ export function ApiProvider({ children }) {
       logout: async () => {
         if (!token) {
           try {
-            await fetch("/api/session/student", {
+            await fetch(apiUrl("/api/session/student"), {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ studentId: null }),
@@ -181,13 +193,13 @@ export function ApiProvider({ children }) {
       addStaff: () => mutate("/api/staff/placeholder", { method: "POST" }).then(setSnapshot),
       bookingDemo: () => mutate("/api/bookings/demo", { method: "POST" }).then(setSnapshot),
       listUsers: async () => {
-        const r = await fetch("/api/admin/users", { headers: { ...bareAuthHeaders } });
+        const r = await fetch(apiUrl("/api/admin/users"), { headers: { ...bareAuthHeaders } });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.error || r.statusText);
         return data.users;
       },
       patchUser: async (id, patch) => {
-        const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
+        const r = await fetch(apiUrl(`/api/admin/users/${encodeURIComponent(id)}`), {
           method: "PATCH",
           headers: { ...authHeaders },
           body: JSON.stringify(patch),
@@ -199,7 +211,7 @@ export function ApiProvider({ children }) {
       importCsv: async (file) => {
         const fd = new FormData();
         fd.append("file", file);
-        const r = await fetch("/api/import/csv", {
+        const r = await fetch(apiUrl("/api/import/csv"), {
           method: "POST",
           headers: bareAuthHeaders,
           body: fd,

@@ -88,6 +88,14 @@ scwis-fullstack/
 - 健康检查：`GET /api/health` → `{ "ok": true }`
 - 默认 API 端口：**8788**（可通过环境变量 `PORT` 覆盖）
 
+## 使用 Vercel 部署前端
+
+仓库根目录已有 `vercel.json`：只在 **`client/`** 里执行 `npm ci` 与 `npm run build`，输出 **`client/dist`**，避免默认在仓库根装依赖导致构建不符合预期。
+
+在 [Vercel](https://vercel.com) 导入该 Git 仓库后，一般**不用**再在面板里改 Root Directory（保持仓库根即可）。若曾手动设为子目录，请改回根目录以使用本配置。
+
+**注意**：Vercel 上仅为**静态前端**；`/api/*` 不会连到你本地的 Express，登录与数据接口需另部署后端（如 Railway / Render），或仅作静态演示。
+
 ## 生产部署注意
 
 1. 将 `JWT_SECRET` 设为足够长的随机字符串，不要使用仓库示例值。  

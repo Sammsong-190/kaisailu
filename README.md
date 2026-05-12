@@ -122,7 +122,8 @@ scwis-fullstack/
 
 1. 将 `JWT_SECRET` 设为足够长的随机字符串，不要使用仓库示例值。  
 2. `DATABASE_URL` 指向你有权访问的数据库文件或连接串；部署前执行 `prisma db push` 或迁移策略你自行选择。  
-3. 前端构建后，需将静态资源置于 CDN / 静态托管，或让同一 Node 进程提供静态文件（当前仓库以开发代理为主，生产组合请按你的基础设施调整）。
+3. 前端构建后，需将静态资源置于 CDN / 静态托管，或让同一 Node 进程提供静态文件（当前仓库以开发代理为主，生产组合请按你的基础设施调整）。  
+4. 若 Docker / 部分 CI 在 **`NODE_ENV=production`** 下执行 `npm ci` 且不安装 devDependencies，`vite` 会被跳过并报 **`vite: not found`**；本仓库已将 **Vite 与 `@vitejs/plugin-react` 放在 `client` 的 `dependencies`**，避免该问题。
 
 ## 许可
 

@@ -106,6 +106,18 @@ scwis-fullstack/
 
 **注意**：仓库里的 **Express + Prisma 需单独托管**（如 [Render](https://render.com/)、Railway）；服务端已启用 `cors({ origin: true })`，允许跨域前端调用。
 
+### 报错：Backend returned HTML, not JSON…
+
+含义：前端把 **API** 的请求当成了静态页，或对端根本没有跑 Express。
+
+| 场景 | 处理 |
+|------|------|
+| 本地只在 **`client/`** 里执行了 **`npm run dev`** | 在**仓库根目录**执行 **`npm run dev`**，让 Vite（5173）和 Express（8788）一起启动。 |
+| `npm run preview` / 访问 **4173** 查看构建结果 | **另开终端**先运行 **`npm run dev --prefix server`**（API 先有），再预览。 |
+| 部署在 **Vercel / 纯静态托管** | 必须部署可用的 **HTTPS Express**；在项目环境变量里设 **`VITE_API_BASE_URL`**（无尾斜杠），保存后 **重新 Deploy**。 |
+
+自检：后端正常时，`GET /api/health` 应返回 JSON，例如：`{"ok":true}`。（本地常为 `http://127.0.0.1:8788/api/health`。）
+
 ## 生产部署注意
 
 1. 将 `JWT_SECRET` 设为足够长的随机字符串，不要使用仓库示例值。  

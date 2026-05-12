@@ -106,6 +106,10 @@ scwis-fullstack/
 
 **注意**：仓库里的 **Express + Prisma 需单独托管**（如 [Render](https://render.com/)、Railway）；服务端已启用 `cors({ origin: true })`，允许跨域前端调用。
 
+### Railway / Railpack
+
+仓库根目录有 **`railpack.json`**：`install` 在默认的根目录 **`npm ci` 之后**，再依次执行 **`npm ci --prefix client`** 与 **`npm ci --prefix server`**，这样 `client/node_modules`、`server/node_modules` 会与根目录一并装好，避免出现根目录装了 `concurrently` 但 **`vite`** 未被安装、`vite build` 报 **`not found`** 的情况。（`"...` 沿用 Railpack 自动生成的安装命令 — 参见 [Railpack 配置文档](https://railpack.com/config/file)。）
+
 ### 报错：Backend returned HTML, not JSON…
 
 含义：前端把 **API** 的请求当成了静态页，或对端根本没有跑 Express。

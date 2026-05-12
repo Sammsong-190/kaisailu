@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "install": {
+      "commands": [
+        "...",
+        "npm ci --prefix client",
+        "npm ci --prefix server"
+      ]
+    }
+  }
+}

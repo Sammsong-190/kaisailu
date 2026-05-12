@@ -60,9 +60,6 @@ export default function Landing() {
               <Link className="ghost-link" to="/register/counselor">
                 Counselor registration
               </Link>
-              <Link className="btn nav-pill dark" to="/login">
-                Admin sign in
-              </Link>
             </>
           )}
         </div>

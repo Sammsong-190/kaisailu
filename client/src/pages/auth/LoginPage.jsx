@@ -63,13 +63,13 @@ export default function LoginPage() {
       <div className="auth-page entry-auth-page">
         <div className="auth-card spa-card auth-card-entry">
         <Link className="auth-back muted" to="/">
-          ← Back to registration
+          ← Back to home
         </Link>
         <h2>Sign in to SCWIS</h2>
         <p className="muted">
           {counselorHint
-            ? "Counselors can sign in with their work email. New accounts: use counselor registration first."
-            : "Enter your registered email and password."}
+            ? "Counselors: sign in with your work email. Need an account? Use counselor registration first."
+            : "One sign-in for everyone. Enter the email and password for your student, counselor, or admin account."}
         </p>
         {msg ? <div className="banner-err inline-banner">{msg}</div> : null}
 
@@ -93,7 +93,7 @@ export default function LoginPage() {
           <Link to="/register/counselor">Counselor registration</Link>
         </div>
         <p className="muted tiny-help admin-demo-login-hint">
-          Admin demo (Prisma seed): <code>admin@demo.edu</code> / <code>Admin123!</code>
+          Seeded admin demo: <code>admin@demo.edu</code> / <code>Admin123!</code> (after running <code>db:seed</code> on the server).
         </p>
         </div>
       </div>

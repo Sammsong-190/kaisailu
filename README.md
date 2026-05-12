@@ -119,14 +119,11 @@ scwis-fullstack/
 | `DATABASE_URL` | `file:./dev.db`（与 `server/.env.example` 一致；SQLite 落在 `server/prisma/dev.db`） |
 | `JWT_SECRET` | 足够长的随机串（勿用仓库占位值） |
 
-保存后 **Redeploy**。新建或初次建库时在可访问部署环境的 Shell 执行一次：
+保存后 **Redeploy**。**`npm start --prefix server`**（仓库默认服务端启动脚本）会在启动前依次：**`prisma db push`**（建表）→ **`prisma/seed.js`**（若没有管理员则写入 demo 管理员）→ **启动 API**。若在 Railway **自定义 Start Command**，需自行包含等价步骤，否则会缺表。
 
-```bash
-npm run db:push --prefix server
-npm run db:seed --prefix server
-```
+若仍报 **`User` 表不存在**：检查启动命令是否真的跑到上述 `npm start`、`DATABASE_URL` 是否已设置，并重试一次部署。
 
-再使用种子管理员：`admin@demo.edu` / `Admin123!`。
+管理员种子（仅在库里尚无该邮箱时写入）：`admin@demo.edu` / `Admin123!`。
 
 SQLite 若没有挂载 **Volume**：容器重建可能丢库；需要持久数据请挂卷或换 **PostgreSQL**。
 

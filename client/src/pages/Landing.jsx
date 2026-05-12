@@ -28,11 +28,7 @@ export default function Landing() {
 
   return (
     <div className="landing landing-home">
-      <div className="scwis-flow-layer" aria-hidden>
-        <span className="scwis-flow-orb scwis-flow-orb-a" />
-        <span className="scwis-flow-orb scwis-flow-orb-b" />
-        <span className="scwis-flow-orb scwis-flow-orb-c" />
-      </div>
+      <div className="scwis-flow-layer" aria-hidden />
 
       <nav className="topnav landing-topnav">
         <Link className="logo" to="/">

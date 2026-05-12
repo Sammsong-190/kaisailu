@@ -7,11 +7,7 @@ export default function EntryLayout({ children }) {
 
   return (
     <div className="entry-shell">
-      <div className="scwis-flow-layer" aria-hidden>
-        <span className="scwis-flow-orb scwis-flow-orb-a" />
-        <span className="scwis-flow-orb scwis-flow-orb-b" />
-        <span className="scwis-flow-orb scwis-flow-orb-c" />
-      </div>
+      <div className="scwis-flow-layer" aria-hidden />
 
       <header className="entry-topnav">
         <Link className="logo entry-logo" to="/">

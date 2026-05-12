@@ -636,9 +636,8 @@ code {
   color: #64748b;
 }
 
-/* Shared flowing backdrop — bolder motion while staying rhythmic / looped */
+/* Shared backdrop: gradient drifts faster; soft veil layer moves a bit slower */
 .scwis-flow-layer {
-  --scwis-flow-period: 26s;
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -654,7 +653,7 @@ code {
     #f0edff 100%
   );
   background-size: 400% 400%;
-  animation: scwisFlowGradient var(--scwis-flow-period) linear infinite;
+  animation: scwisFlowGradient 9s linear infinite;
 }
 
 .scwis-flow-layer::before {
@@ -664,46 +663,9 @@ code {
   background: radial-gradient(ellipse 52% 44% at 65% 15%, rgba(255, 255, 255, 0.62) 0%, transparent 42%),
     radial-gradient(ellipse 50% 42% at 12% 75%, rgba(255, 255, 255, 0.4) 0%, transparent 45%),
     radial-gradient(ellipse 38% 32% at 85% 60%, rgba(59, 130, 246, 0.28) 0%, transparent 42%);
-  animation: scwisFlowVeil var(--scwis-flow-period) linear infinite;
+  animation: scwisFlowVeil 14s linear infinite;
   opacity: 1;
   mix-blend-mode: soft-light;
-}
-
-.scwis-flow-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(44px);
-  opacity: 0.68;
-  will-change: transform;
-}
-
-.scwis-flow-orb-a {
-  width: min(78vw, 580px);
-  height: min(78vw, 580px);
-  left: -16%;
-  top: -4%;
-  background: radial-gradient(circle, rgba(79, 70, 229, 0.72) 0%, rgba(147, 197, 253, 0.22) 42%, transparent 70%);
-  animation: scwisOrbCircuit var(--scwis-flow-period, 26s) linear infinite;
-}
-
-.scwis-flow-orb-b {
-  width: min(68vw, 500px);
-  height: min(68vw, 500px);
-  right: -14%;
-  top: 22%;
-  background: radial-gradient(circle, rgba(2, 132, 199, 0.62) 0%, rgba(186, 230, 253, 0.2) 44%, transparent 70%);
-  animation: scwisOrbCircuit var(--scwis-flow-period, 26s) linear infinite;
-  animation-delay: calc(var(--scwis-flow-period, 26s) / -3);
-}
-
-.scwis-flow-orb-c {
-  width: min(64vw, 460px);
-  height: min(64vw, 460px);
-  left: 6%;
-  bottom: -20%;
-  background: radial-gradient(circle, rgba(147, 51, 234, 0.58) 0%, rgba(233, 213, 255, 0.22) 46%, transparent 70%);
-  animation: scwisOrbCircuit var(--scwis-flow-period, 26s) linear infinite;
-  animation-delay: calc(var(--scwis-flow-period, 26s) / -3 * 2);
 }
 
 /* Closed loop positions (0% === 100%) + constant linear speed → steady beat */
@@ -736,29 +698,9 @@ code {
   }
 }
 
-/* Same rectangular path for every orb; delays space them evenly around the cycle */
-@keyframes scwisOrbCircuit {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-  }
-  25% {
-    transform: translate(9vw, 0) scale(1.1) rotate(9deg);
-  }
-  50% {
-    transform: translate(9vw, 10vh) scale(1.02) rotate(0deg);
-  }
-  75% {
-    transform: translate(0, 10vh) scale(1.1) rotate(-9deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .scwis-flow-layer,
-  .scwis-flow-layer::before,
-  .scwis-flow-orb-a,
-  .scwis-flow-orb-b,
-  .scwis-flow-orb-c {
+  .scwis-flow-layer::before {
     animation: none !important;
   }
 }

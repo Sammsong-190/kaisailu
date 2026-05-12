@@ -6,6 +6,8 @@ import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
 
 function Dashboard() {
   const { snapshot, api } = useApi();
+  const [csvPickLabel, setCsvPickLabel] = useState("No file selected.");
+
   if (!snapshot) return <p className="muted">Loading…</p>;
   const flagged = snapshot.students.filter((s) => s.risk.score != null && s.risk.score >= snapshot.settings.medium);
   return (
@@ -27,11 +29,36 @@ function Dashboard() {
       <CampusMetricsCharts timeline={snapshot.metrics?.timeline} />
       <div className="spa-card">
         <h4>CSV import · detection</h4>
-        <label className="upload-zone">
-          <strong>Select CSV file</strong>
-          <span className="muted">Multipart upload to `/api/import/csv`.</span>
-          <input type="file" accept=".csv" onChange={(e) => e.target.files?.[0] && api.importCsv(e.target.files[0]).catch((er) => alert(er.message))} />
-        </label>
+        <div className="upload-zone">
+          <p className="muted upload-zone-intro">
+            Upload roster data as comma-separated CSV. Sent as multipart POST to <code>/api/import/csv</code>.
+          </p>
+          <div className="csv-file-row">
+            <label className="btn secondary csv-browse-inline">
+              Browse for CSV…
+              <input
+                type="file"
+                accept=".csv,text/csv,text/comma-separated-values"
+                className="csv-input-overlay"
+                aria-label="Browse for CSV file"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  setCsvPickLabel(`${f.name} · importing…`);
+                  try {
+                    await api.importCsv(f);
+                    setCsvPickLabel(`${f.name} · imported`);
+                  } catch (er) {
+                    setCsvPickLabel(`${f.name} · failed`);
+                    alert(String(er?.message || er));
+                  }
+                }}
+              />
+            </label>
+            <span className="muted csv-pick-caption">{csvPickLabel}</span>
+          </div>
+        </div>
         <button type="button" className="btn full" onClick={() => api.downloadTemplate()}>
           Download CSV template
         </button>

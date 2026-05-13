@@ -229,10 +229,10 @@ app.patch("/api/students/:id", ...adminOnlyCh, (req, res) => {
 });
 
 app.post("/api/checkins", ...studentCh, (req, res) => {
-  const { studentId, stress, sleep, mood, study } = req.body || {};
+  const { studentId } = req.body || {};
   if (!studentId) return res.status(400).json({ error: "studentId required" });
   if (studentId !== req.user.studentProfileId) return res.status(403).json({ error: "You can only submit check-ins for your own linked student record." });
-  store.pushCheckin(studentId, { stress, sleep, mood, study });
+  store.pushCheckin(studentId, req.body || {});
   res.json(snapshotForViewer(authLike(req.user)));
 });
 

@@ -17,6 +17,99 @@ function seedTimeline() {
   return pts;
 }
 
+function mulberry32(a) {
+  return function () {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function clampR(lo, hi, x) {
+  return Math.min(hi, Math.max(lo, Math.round(Number(x))));
+}
+
+function sleepHrToFive(h) {
+  const x = Number(h);
+  if (!Number.isFinite(x)) return 3;
+  if (x <= 4.5) return 1;
+  if (x <= 5.5) return 2;
+  if (x <= 6.5) return 3;
+  if (x <= 7.5) return 4;
+  return 5;
+}
+
+const DEMO_MOODS = [
+  { key: "great", mood: "Fantastic" },
+  { key: "good", mood: "Good" },
+  { key: "ok", mood: "OK" },
+  { key: "low", mood: "Low" },
+  { key: "rough", mood: "Rough" },
+];
+
+const DEMO_NOTES = [
+  "Heavy exam week",
+  "Slept badly — noisy hall",
+  "Better after counselling",
+  "Skipped gym — deadline crunch",
+  "Family chat helped calm down",
+];
+
+function demoCheckinsForStudent(student) {
+  let seed = 0;
+  for (let i = 0; i < student.id.length; i++) seed = seed * 33 + student.id.charCodeAt(i);
+  const rnd = mulberry32(seed >>> 0);
+  const baseStress = clampR(1, 5, Number(student.stress) || 3);
+  const baseSleepQ = sleepHrToFive(student.sleep);
+  const soc = clampR(1, 5, Math.round(Number(student.social ?? 6) / 2));
+  const phy = clampR(1, 5, Number(student.gym) >= 5 ? 5 : Number(student.gym) >= 3 ? 4 : Number(student.gym) >= 1 ? 3 : 2);
+  const lms = Number(student.lms ?? 60);
+  const baseStudy = clampR(1, 5, lms < 52 ? 2 : lms > 82 ? 4 : 3);
+
+  const entries = [];
+  for (let i = 0; i < 14; i++) {
+    const jitterS = rnd() - 0.45;
+    const stress = clampR(1, 5, baseStress + Math.round(jitterS * 2.5 + ((i % 4) - 1)));
+    const sleepQ = clampR(1, 5, baseSleepQ + Math.round((rnd() - 0.4) * 2));
+    const study = clampR(1, 5, baseStudy + Math.round((rnd() - 0.4) * 2));
+    const physicalActivity = clampR(1, 5, phy + Math.round((rnd() - 0.43) * 2));
+    const socialLonely = clampR(1, 5, soc + Math.round((rnd() - 0.42) * 2));
+
+    const moodScore = clampR(2, 5, Math.round((sleepQ + socialLonely + (6 - stress)) / 3 + rnd() * 1.8 - 0.6));
+    const moodIdx = clampR(0, DEMO_MOODS.length - 1, 5 - moodScore);
+    const { key: moodKey, mood: moodLabel } = DEMO_MOODS[moodIdx];
+
+    const dayHop = Math.floor(16 + rnd() * 62) + i * Math.floor(8 + rnd() * 44);
+    const t = Date.now() - dayHop * 3600000;
+
+    let notes = "";
+    if (rnd() > 0.68) notes = DEMO_NOTES[Math.floor(rnd() * DEMO_NOTES.length)];
+
+    entries.push({
+      t,
+      stress,
+      sleepQ,
+      moodKey,
+      mood: moodLabel,
+      study,
+      physicalActivity,
+      socialLonely,
+      notes,
+    });
+  }
+  entries.sort((a, b) => b.t - a.t);
+  return entries.slice(0, 24);
+}
+
+function seedDemoCheckins(students) {
+  const out = {};
+  for (const s of students) {
+    out[s.id] = demoCheckinsForStudent(s);
+  }
+  return out;
+}
+
 function computeMetricPoint(view, casesOpen) {
   const consented = view.filter((s) => s.consent);
   const highs = view.filter((s) => s.risk.level === "High").length;
@@ -52,9 +145,10 @@ function pushMetrics(state) {
 }
 
 function blankState() {
+  const students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
   return {
-    schemaVersion: 6,
-    students: JSON.parse(JSON.stringify(DEFAULT_STUDENTS)),
+    schemaVersion: 7,
+    students,
     cases: [],
     caseArchive: [],
     metrics: { timeline: seedTimeline() },
@@ -62,7 +156,7 @@ function blankState() {
     logs: ["Server started", "Consent filter active", "Human-in-the-loop mode enabled"],
     settings: { high: 80, medium: 55, retentionDays: 365 },
     session: { studentId: null },
-    checkins: {},
+    checkins: seedDemoCheckins(students),
     staff: [
       { id: "C01", name: "Dr. Rivera", role: "Counselor", active: true },
       { id: "C02", name: "Dr. Okonkwo", role: "Lead counselor", active: true },
@@ -237,17 +331,33 @@ export const store = {
     pushMetrics(state);
   },
 
-  pushCheckin(studentId, { stress, sleep, mood, study }) {
+  pushCheckin(studentId, body = {}) {
+    const moodKeys = ["great", "good", "ok", "low", "rough"];
+    const mk = moodKeys.includes(body.moodKey) ? body.moodKey : "ok";
+    const moodLabel =
+      DEMO_MOODS.find((m) => m.key === mk)?.mood ||
+      (typeof body.mood === "string" && body.mood.trim() ? body.mood.trim() : "OK");
+    const stress = clampR(1, 5, body.stress ?? 3);
+    const sleepQ = clampR(1, 5, body.sleepQ ?? sleepHrToFive(body.sleep) ?? 3);
+    const study = clampR(1, 5, body.study ?? 3);
+    const physicalActivity = clampR(1, 5, body.physicalActivity ?? 3);
+    const socialLonely = clampR(1, 5, body.socialLonely ?? 3);
+    const notes = String(body.notes || "").trim().slice(0, 800);
+
     if (!state.checkins[studentId]) state.checkins[studentId] = [];
     state.checkins[studentId].unshift({
       t: Date.now(),
       stress,
-      sleep,
-      mood,
-      study: study != null ? study : "",
+      sleepQ,
+      moodKey: mk,
+      mood: moodLabel,
+      study,
+      physicalActivity,
+      socialLonely,
+      notes,
     });
     state.checkins[studentId] = state.checkins[studentId].slice(0, 24);
-    logLine(`${studentId} check-in: mood=${mood}, stress=${stress}, sleep=${sleep}`);
+    logLine(`${studentId} check-in (${mk}) stress=${stress} sleepQ=${sleepQ}`);
     pushMetrics(state);
   },
 

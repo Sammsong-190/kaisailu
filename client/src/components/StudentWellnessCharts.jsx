@@ -10,18 +10,26 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  resolveSleepFive,
+  resolveMoodFive,
+  resolveStudyFive,
+  resolvePhysicalFive,
+  resolveSocialFive,
+  sleepHoursToQuality,
+} from "../checkinUtils.js";
 
 /**
  * @param {{
  *   student: Record<string, unknown>;
- *   checkins: Array<{ t: number; stress: number; sleep: number; mood: string; study?: string }>;
+ *   checkins: Array<Record<string, unknown>>;
  *   trend?: Array<{ w: string; s: number; b: number }> | null;
  *   showCampusTrend?: boolean;
  * }} props
  */
 export default function StudentWellnessCharts({ student, checkins, trend, showCampusTrend = true }) {
   const raw = Array.isArray(checkins) ? checkins : [];
-  const series = [...raw]
+  let series = [...raw]
     .reverse()
     .slice(-14)
     .map((c, i) => ({
@@ -31,16 +39,26 @@ export default function StudentWellnessCharts({ student, checkins, trend, showCa
           ? new Date(c.t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
           : `Check-in ${i + 1}`,
       Stress: Number(c.stress),
-      Sleep: Number(c.sleep),
+      Sleep: resolveSleepFive(c, student),
+      Study: resolveStudyFive(c),
+      Mood: resolveMoodFive(c),
+      Physical: resolvePhysicalFive(c, student),
+      Social: resolveSocialFive(c, student),
     }));
 
   if (series.length === 0) {
-    series.push({
-      order: 0,
-      label: "Profile baseline",
-      Stress: Number(student.stress ?? 3),
-      Sleep: Number(student.sleep ?? 7),
-    });
+    series = [
+      {
+        order: 0,
+        label: "Profile baseline",
+        Stress: Number(student.stress ?? 3),
+        Sleep: sleepHoursToQuality(Number(student.sleep ?? 7)),
+        Study: clampStudyBaseline(student.lms ?? 60),
+        Mood: 3,
+        Physical: resolvePhysicalFive({}, student),
+        Social: resolveSocialFive({}, student),
+      },
+    ];
   }
 
   const activityData = [
@@ -58,29 +76,27 @@ export default function StudentWellnessCharts({ student, checkins, trend, showCa
 
   return (
     <div className="student-wellness-charts">
-      <div className="spa-card chart-card-compact">
-        <h4>Your check-ins · stress &amp; sleep</h4>
+      <div className="spa-card chart-card-compact student-chart-span-2">
+        <h4>Your check-ins · wellness (all scales 1–5)</h4>
         <p className="muted tiny-help">
           {raw.length < 2
-            ? "Submit a few check-ins to build a real trend line. Shown point uses your current profile values as a starting reference."
-            : "Most recent entries on the right."}
+            ? "More check-ins thicken the trends. Until then, baseline uses your roster profile signals."
+            : "Most recent points appear on the right."}
+          {" "}Sleep reflects self-rated sleep quality, not clock hours.
         </p>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-            <YAxis yAxisId="left" domain={[0, 5]} tick={{ fontSize: 11 }} label={{ value: "Stress 1–5", angle: -90, position: "insideLeft", style: { fontSize: 10 } }} />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              domain={[0, 12]}
-              tick={{ fontSize: 11 }}
-              label={{ value: "Sleep (h)", angle: 90, position: "insideRight", style: { fontSize: 10 } }}
-            />
-            <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
-            <Legend />
-            <Line yAxisId="left" type="monotone" dataKey="Stress" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-            <Line yAxisId="right" type="monotone" dataKey="Sleep" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            <XAxis dataKey="label" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+            <YAxis domain={[0.5, 5.5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 11 }} />
+            <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", maxWidth: 280 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Line type="monotone" dataKey="Stress" stroke="#dc2626" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="Sleep" stroke="#2563eb" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="Study" stroke="#059669" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="Mood" stroke="#9333ea" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="Physical" stroke="#ea580c" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="Social" stroke="#0891b2" strokeWidth={2} dot={{ r: 2 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -118,4 +134,13 @@ export default function StudentWellnessCharts({ student, checkins, trend, showCa
       ) : null}
     </div>
   );
+}
+
+/** @param {number} lms */
+function clampStudyBaseline(lms) {
+  const x = Number(lms);
+  if (!Number.isFinite(x)) return 3;
+  if (x < 52) return 2;
+  if (x > 82) return 4;
+  return 3;
 }

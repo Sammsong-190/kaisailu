@@ -1,8 +1,9 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useState } from "react";
 import { useApi } from "../ApiProvider.jsx";
 import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
 import StudentWellnessCharts from "../components/StudentWellnessCharts.jsx";
+import StudentCheckinForm from "../components/StudentCheckinForm.jsx";
+import { moodEmoji } from "../checkinUtils.js";
 function Overview() {
   const { snapshot, trend } = useApi();
   if (!snapshot) return null;
@@ -38,46 +39,11 @@ function Checkin() {
   if (!snapshot) return null;
   const sid = snapshot.session.studentId;
   const s = snapshot.students.find((x) => x.id === sid);
-  const [stress, setStress] = useState(Number(s?.stress ?? 3));
-  const [sleep, setSleep] = useState(s?.sleep ?? 7);
-  const [mood, setMood] = useState("Calm");
-  const [study, setStudy] = useState("OK");
-
   if (!s) return null;
 
   return (
     <>
-      <div className="spa-card">
-        <h3>Check-in</h3>
-        <label className="field">
-          Stress (1–5)
-          <input type="range" min={1} max={5} value={stress} onChange={(e) => setStress(+e.target.value)} />
-        </label>
-        <label className="field">
-          Sleep (hrs)
-          <input type="number" step={0.1} value={sleep} onChange={(e) => setSleep(+e.target.value)} />
-        </label>
-        <label className="field">
-          Study focus
-          <select value={study} onChange={(e) => setStudy(e.target.value)}>
-            <option>Strong</option>
-            <option>OK</option>
-            <option>Struggling</option>
-          </select>
-        </label>
-        <label className="field">
-          Mood
-          <select value={mood} onChange={(e) => setMood(e.target.value)}>
-            <option>Calm</option>
-            <option>Anxious</option>
-            <option>Low</option>
-            <option>Energized</option>
-          </select>
-        </label>
-        <button type="button" className="btn primary full" onClick={() => api.checkin({ studentId: sid, stress, sleep, mood, study })}>
-          Submit
-        </button>
-      </div>
+      <StudentCheckinForm studentId={sid} student={s} api={api} />
       <div className="spa-card">
         <h4>Recent</h4>
         <CheckinHistory entries={snapshot.checkins[sid] || []} />
@@ -90,11 +56,35 @@ function CheckinHistory({ entries }) {
   if (!entries.length) return <p className="muted">No entries.</p>;
   return (
     <ul className="spa-mini-log">
-      {entries.slice(0, 6).map((x, i) => (
-        <li key={i}>
-          <time>{new Date(x.t).toLocaleString()}</time> · mood {x.mood} · stress {x.stress}
-        </li>
-      ))}
+      {entries.slice(0, 10).map((x, i) => {
+        const row = typeof x === "object" ? x : {};
+        const mk = typeof row.moodKey === "string" ? row.moodKey : "ok";
+        const em = moodEmoji(mk);
+        const sleepPart =
+          row.sleepQ != null ? `sleep · ${row.sleepQ}` : row.sleep != null ? `sleep (hrs demo) · ${row.sleep}` : "sleep · —";
+        const noteSnippet =
+          typeof row.notes === "string" && row.notes.trim().length > 0
+            ? ` · note: "${row.notes.trim().slice(0, 80)}${row.notes.trim().length > 80 ? "…" : ""}"`
+            : "";
+        const phys = row.physicalActivity != null ? ` · activity ${row.physicalActivity}` : "";
+        const soc = row.socialLonely != null ? ` · social ${row.socialLonely}` : "";
+        const studyBit = typeof row.study === "number" ? `study ${row.study}` : "";
+        return (
+          <li key={`${String(row.t)}-${i}`}>
+            <time>{new Date(row.t).toLocaleString()}</time>
+            {" · "}
+            <span aria-hidden>{em}</span> {typeof row.mood === "string" ? row.mood : mk}
+            {" · "}
+            stress {row.stress}
+            {" · "}
+            {sleepPart}
+            {studyBit ? ` · ${studyBit}` : ""}
+            {phys}
+            {soc}
+            {noteSnippet}
+          </li>
+        );
+      })}
     </ul>
   );
 }

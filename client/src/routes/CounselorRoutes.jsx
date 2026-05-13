@@ -3,6 +3,7 @@ import { useApi } from "../ApiProvider.jsx";
 import CaseCard from "../components/CaseCard.jsx";
 import CampusMetricsCharts from "../components/CampusMetricsCharts.jsx";
 import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
+import { moodEmoji } from "../checkinUtils.js";
 
 function reviewHref(c) {
   return `/app/counselor/review/${encodeURIComponent(c.caseId)}`;
@@ -337,8 +338,10 @@ function StudentProfile() {
         <ul className="checkin-list">
           {checkins.map((row, i) => (
             <li key={i}>
-              <strong>{formatTs(row.t)}</strong> — stress {row.stress}, sleep {row.sleep}, mood {row.mood}
-              {row.study ? ` · study: ${row.study}` : ""}
+              <strong>{formatTs(row.t)}</strong> — <span aria-hidden>{moodEmoji(row.moodKey || "ok")}</span> {row.mood || row.moodKey} · stress{" "}
+              {row.stress}, sleep {row.sleepQ != null ? `${row.sleepQ}/5` : `${row.sleep ?? "—"} h`},{" "}
+              study {typeof row.study === "number" ? `${row.study}/5` : row.study ?? "—"}, move {row.physicalActivity ?? "—"}, social {row.socialLonely ?? "—"}
+              {row.notes?.trim() ? ` · note: "${String(row.notes).trim().slice(0, 120)}${String(row.notes).length > 120 ? "…" : ""}"` : ""}
             </li>
           ))}
         </ul>

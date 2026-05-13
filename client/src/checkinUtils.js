@@ -99,3 +99,86 @@ export function resolveSocialFive(row, student) {
   if (!Number.isFinite(soc)) return 3;
   return Math.min(5, Math.max(1, Math.round(soc / 2)));
 }
+
+/** @returns {number} 0–100 */
+export function quintileToWellnessPct(score1to5) {
+  const v = clampRating(score1to5, 3);
+  return ((v - 1) / 4) * 100;
+}
+
+/**
+ * Composites stress, sleep quality, workload, mood, physical activity & social-connection (all 1–5).
+ * Stress and workload overload are inverted so higher wellness index = resting calmer rhythms.
+ * @param {Record<string, unknown>} row
+ * @param {Record<string, unknown>} student
+ * @returns {number} rounded 0–100
+ */
+export function compositeWellnessScore(row, student) {
+  const stress = clampRating(Number(row.stress), 3);
+  const workload = clampRating(resolveStudyFive(row), 3);
+  const calm = quintileToWellnessPct(6 - stress);
+  const pacing = quintileToWellnessPct(6 - workload);
+  const sleep = quintileToWellnessPct(resolveSleepFive(row, student));
+  const mood = quintileToWellnessPct(resolveMoodFive(row));
+  const physical = quintileToWellnessPct(resolvePhysicalFive(row, student));
+  const social = quintileToWellnessPct(resolveSocialFive(row, student));
+  const sum = calm + pacing + sleep + mood + physical + social;
+  return Math.round(sum / 6);
+}
+
+/** ISO-like local yyyy-mm-dd */
+export function localDateKey(timestamp) {
+  const d = new Date(Number(timestamp));
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * One point per calendar day — averages multiple submissions on the same day.
+ * @param {Array<Record<string, unknown>>} entries Chronological any order (uses `row.t`).
+ * @param {Record<string, unknown>} student roster profile fallback
+ */
+export function dailyWellnessTrend(entries, student) {
+  /** @type {Map<string, { sum: number; count: number }>} */
+  const map = new Map();
+  const list = Array.isArray(entries) ? entries : [];
+  for (const row of list) {
+    const t = row.t;
+    if (t == null) continue;
+    const key = localDateKey(t);
+    if (!key) continue;
+    const prev = map.get(key) || { sum: 0, count: 0 };
+    prev.sum += compositeWellnessScore(row, student);
+    prev.count += 1;
+    map.set(key, prev);
+  }
+  return [...map.entries()]
+    .map(([day, cell]) => ({
+      day,
+      composite: Math.round(cell.sum / cell.count),
+      count: cell.count,
+      labelShort: `${day.slice(5, 7)}-${day.slice(8, 10)}`,
+    }))
+    .sort((a, b) => a.day.localeCompare(b.day))
+    .slice(-40);
+}
+
+/**
+ * For UI when there is no check-in yet.
+ * @param {Record<string, unknown>} student
+ */
+export function profileBaselineWellnessRow(student) {
+  const lms = Number(student.lms ?? 60);
+  const study = lms < 52 ? 2 : lms > 82 ? 4 : 3;
+  return {
+    stress: student.stress ?? 3,
+    sleep: student.sleep ?? 7,
+    moodKey: "ok",
+    study,
+    physicalActivity: resolvePhysicalFive({}, student),
+    socialLonely: resolveSocialFive({}, student),
+  };
+}

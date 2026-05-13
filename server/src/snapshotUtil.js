@@ -1,11 +1,36 @@
 import { store } from "./store.js";
 
 /**
- * @param {{ role: string; studentProfileId?: string | null } | null | undefined} auth
- * From JWT / optionalAuth: when student, inject session for student portal.
+ * Normalize role from JWT or Prisma (defensive).
+ * @param {string | null | undefined} r
+ */
+function viewerRoleUpper(r) {
+  if (r == null) return null;
+  return String(r).toUpperCase();
+}
+
+/**
+ * Snapshot filtered for the bearer JWT context (`optionalAuth` sets `req.auth`).
+ * @param {{ role?: string | null; studentProfileId?: string | null } | null | undefined} auth
  */
 export function snapshotForViewer(auth) {
-  if (auth?.role === "STUDENT" && auth.studentProfileId)
-    return store.snapshot({ sessionOverride: { studentId: auth.studentProfileId } });
-  return store.snapshot();
+  const role = viewerRoleUpper(auth?.role);
+  const sid = auth?.studentProfileId ?? null;
+
+  let snap;
+  if (role === "STUDENT" && sid) snap = store.snapshot({ sessionOverride: { studentId: sid } });
+  else snap = store.snapshot();
+
+  snap.chatThreads = store.getChatThreadsForViewer(role, sid, snap.session?.studentId ?? null);
+  snap.chatStudentLinked = role !== "STUDENT" || Boolean(sid);
+  return snap;
+}
+
+/** Signed-in HTTP user rows from Prisma (login mutations, counselor/admin POST handlers). */
+export function snapshotForPrismaUser(user) {
+  if (!user) return snapshotForViewer(null);
+  return snapshotForViewer({
+    role: String(user.role || "").toUpperCase(),
+    studentProfileId: user.studentProfileId ?? null,
+  });
 }

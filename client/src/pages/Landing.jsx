@@ -70,11 +70,11 @@ export default function Landing() {
 
       <section id="overview" className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">React + Express demo</span>
+          <span className="eyebrow">Student wellness intelligence</span>
           <h1>
             Behavioral signals → <span className="grad">counselor review</span> → tiered care
           </h1>
-          <p className="lead">
+          <p className="lead landing-lead-script">
             SCWIS surfaces explainable risk hints. Intervention tiers unlock only after a counselor confirms the signal — the API never executes care on its own.
           </p>
           <div className="actions-row">
@@ -140,7 +140,7 @@ export default function Landing() {
           <article className="flow-stage card-glass">
             <span className="flow-num">3</span>
             <h3>Tiered follow-up</h3>
-            <p className="muted">Levels 1–3 model intensity — from lightweight resources through direct outreach — all counselor-led in this demo.</p>
+            <p className="muted">Levels 1–3 reflect intensity — from tailored resources through direct outreach — under counselor direction.</p>
           </article>
         </div>
       </section>

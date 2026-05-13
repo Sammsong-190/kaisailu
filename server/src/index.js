@@ -6,10 +6,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { store } from "./store.js";
-import { TREND, parseCSV } from "./riskEngine.js";
+import { TREND, parseCSV, DATA_SHARING_CHANNELS } from "./riskEngine.js";
 import { prisma } from "./prisma.js";
 import { optionalAuth, requireLoggedIn, requireRoles } from "./authMiddleware.js";
-import { snapshotForViewer } from "./snapshotUtil.js";
+import { snapshotForViewer, snapshotForPrismaUser } from "./snapshotUtil.js";
 import { hashPassword, verifyPassword, signToken } from "./authUtil.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,13 +29,6 @@ function pubUser(u) {
   };
 }
 
-/** @param {import('@prisma/client').User} user */
-function authLike(user) {
-  return user.role === "STUDENT" && user.studentProfileId
-    ? { role: "STUDENT", studentProfileId: user.studentProfileId }
-    : null;
-}
-
 /** @typedef {readonly [typeof optionalAuth, typeof requireLoggedIn, ReturnType<typeof requireRoles>]} Chain */
 /** @type {Chain} */
 const adminOnlyCh = /** @type {const} */ ([optionalAuth, requireLoggedIn, requireRoles("ADMIN")]);
@@ -43,6 +36,7 @@ const adminOnlyCh = /** @type {const} */ ([optionalAuth, requireLoggedIn, requir
 const counselorOrAdminCh = /** @type {const} */ ([optionalAuth, requireLoggedIn, requireRoles("COUNSELOR", "ADMIN")]);
 /** @type {Chain} */
 const studentCh = /** @type {const} */ ([optionalAuth, requireLoggedIn, requireRoles("STUDENT")]);
+const studentCounselorCh = /** @type {const} */ ([optionalAuth, requireLoggedIn, requireRoles("STUDENT", "COUNSELOR")]);
 
 app.use(cors({ origin: true }));
 app.use(express.json());
@@ -92,7 +86,7 @@ app.post("/api/auth/register", async (req, res) => {
     res.json({
       token,
       user: pubUser(user),
-      snapshot: snapshotForViewer(authLike(user)),
+      snapshot: snapshotForPrismaUser(user),
     });
   } catch (e) {
     res.status(400).json({ error: String(e.message) });
@@ -113,7 +107,7 @@ app.post("/api/auth/login", async (req, res) => {
     res.json({
       token,
       user: pubUser(user),
-      snapshot: snapshotForViewer(authLike(user)),
+      snapshot: snapshotForPrismaUser(user),
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message) });
@@ -213,19 +207,34 @@ app.post("/api/session/student", optionalAuth, (req, res) => {
   }
   const { studentId } = req.body || {};
   store.setStudentSession(studentId ?? null);
-  res.json(store.snapshot());
+  res.json(snapshotForViewer(null));
 });
 
 app.post("/api/consent/:id/toggle", ...studentCh, (req, res) => {
   if (req.params.id !== req.user.studentProfileId)
     return res.status(403).json({ error: "You can only toggle consent on your linked student record." });
   store.toggleConsent(req.params.id);
-  res.json(snapshotForViewer(authLike(req.user)));
+  res.json(snapshotForPrismaUser(req.user));
+});
+
+app.patch("/api/me/data-sharing", ...studentCh, (req, res) => {
+  try {
+    const body = req.body || {};
+    /** @type {Record<string, boolean>} */
+    const patch = {};
+    for (const k of DATA_SHARING_CHANNELS) {
+      if (typeof body[k] === "boolean") patch[k] = body[k];
+    }
+    store.patchDataSharing(req.user.studentProfileId, patch);
+    res.json(snapshotForPrismaUser(req.user));
+  } catch (e) {
+    res.status(400).json({ error: String(e.message) });
+  }
 });
 
 app.patch("/api/students/:id", ...adminOnlyCh, (req, res) => {
   store.updateStudent(req.params.id, req.body || {});
-  res.json(snapshotForViewer(authLike(req.user)));
+  res.json(snapshotForPrismaUser(req.user));
 });
 
 app.post("/api/checkins", ...studentCh, (req, res) => {
@@ -233,67 +242,82 @@ app.post("/api/checkins", ...studentCh, (req, res) => {
   if (!studentId) return res.status(400).json({ error: "studentId required" });
   if (studentId !== req.user.studentProfileId) return res.status(403).json({ error: "You can only submit check-ins for your own linked student record." });
   store.pushCheckin(studentId, req.body || {});
-  res.json(snapshotForViewer(authLike(req.user)));
+  res.json(snapshotForPrismaUser(req.user));
 });
 
-app.post("/api/detection/run", ...counselorOrAdminCh, (_, res) => {
+app.post("/api/chat/send", ...studentCounselorCh, (req, res) => {
+  try {
+    /** @type {{ role: "STUDENT" | "COUNSELOR"; studentProfileId?: string | null }} */
+    let viewer;
+    if (req.user.role === "STUDENT") viewer = { role: "STUDENT", studentProfileId: req.user.studentProfileId };
+    else if (req.user.role === "COUNSELOR") viewer = { role: "COUNSELOR" };
+    else return res.status(403).json({ error: "Only students and counselors can send campus messages." });
+
+    store.sendChat(viewer, req.body || {});
+    res.json(snapshotForPrismaUser(req.user));
+  } catch (e) {
+    res.status(400).json({ error: String(e.message) });
+  }
+});
+
+app.post("/api/detection/run", ...counselorOrAdminCh, (req, res) => {
   store.runDetection();
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
-app.post("/api/cases/:caseId/approve", ...counselorOrAdminCh, (_, res) => {
+app.post("/api/cases/:caseId/approve", ...counselorOrAdminCh, (req, res) => {
   store.approveCase(req.params.caseId);
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
-app.post("/api/cases/:caseId/dismiss", ...counselorOrAdminCh, (_, res) => {
+app.post("/api/cases/:caseId/dismiss", ...counselorOrAdminCh, (req, res) => {
   store.dismissCase(req.params.caseId);
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
 app.post("/api/cases/:caseId/tier", ...counselorOrAdminCh, (req, res) => {
   try {
     const { tier } = req.body || {};
     store.decideTier(req.params.caseId, tier);
-    res.json(store.snapshot());
+    res.json(snapshotForPrismaUser(req.user));
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
 });
 
-app.post("/api/cases/:caseId/notes", ...counselorOrAdminCh, (_, res) => {
+app.post("/api/cases/:caseId/notes", ...counselorOrAdminCh, (req, res) => {
   store.addCaseNote(req.params.caseId, (req.body || {}).text);
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
 app.post("/api/cases/:caseId/follow-up", ...counselorOrAdminCh, (req, res) => {
   store.addFollowUp(req.params.caseId, req.body || {});
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
-app.post("/api/cases/:caseId/archive", ...counselorOrAdminCh, (_, res) => {
+app.post("/api/cases/:caseId/archive", ...counselorOrAdminCh, (req, res) => {
   store.archiveCase(req.params.caseId);
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
 app.patch("/api/settings", ...adminOnlyCh, (req, res) => {
   store.setSettings(req.body || {});
-  res.json(snapshotForViewer(authLike(req.user)));
+  res.json(snapshotForPrismaUser(req.user));
 });
 
-app.post("/api/reset", ...adminOnlyCh, (_, res) => {
+app.post("/api/reset", ...adminOnlyCh, (req, res) => {
   store.reset();
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
-app.post("/api/staff/placeholder", ...adminOnlyCh, (_, res) => {
+app.post("/api/staff/placeholder", ...adminOnlyCh, (req, res) => {
   store.addStaffPlaceholder();
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
-app.post("/api/bookings/demo", ...studentCh, (req, res) => {
-  store.bookingDemo();
-  res.json(snapshotForViewer(authLike(req.user)));
+app.post("/api/bookings", ...studentCh, (req, res) => {
+  store.submitBooking(req.user.studentProfileId, req.body || {});
+  res.json(snapshotForPrismaUser(req.user));
 });
 
 app.post("/api/import/csv", ...adminOnlyCh, upload.single("file"), (req, res) => {
@@ -302,7 +326,7 @@ app.post("/api/import/csv", ...adminOnlyCh, upload.single("file"), (req, res) =>
   const rows = parseCSV(txt);
   if (!rows.length) return res.status(400).json({ error: "CSV not recognized" });
   store.importStudents(rows);
-  res.json(store.snapshot());
+  res.json(snapshotForPrismaUser(req.user));
 });
 
 const spaDist = path.join(__dirname, "../../client/dist");

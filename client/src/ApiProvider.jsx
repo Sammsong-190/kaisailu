@@ -175,6 +175,7 @@ export function ApiProvider({ children }) {
       setStudentSession: (studentId) =>
         mutate("/api/session/student", { method: "POST", body: JSON.stringify({ studentId }) }).then(setSnapshot),
       toggleConsent: (id) => mutate(`/api/consent/${id}/toggle`, { method: "POST" }).then(setSnapshot),
+      patchMeDataSharing: (patch) => mutate("/api/me/data-sharing", { method: "PATCH", body: JSON.stringify(patch) }).then(setSnapshot),
       updateStudent: (id, patch) => mutate(`/api/students/${id}`, { method: "PATCH", body: JSON.stringify(patch) }).then(setSnapshot),
       checkin: (body) => mutate("/api/checkins", { method: "POST", body: JSON.stringify(body) }).then(setSnapshot),
       runDetection: () => mutate("/api/detection/run", { method: "POST" }).then(setSnapshot),
@@ -191,7 +192,10 @@ export function ApiProvider({ children }) {
       patchSettings: (patch) => mutate("/api/settings", { method: "PATCH", body: JSON.stringify(patch) }).then(setSnapshot),
       reset: () => mutate("/api/reset", { method: "POST" }).then(setSnapshot),
       addStaff: () => mutate("/api/staff/placeholder", { method: "POST" }).then(setSnapshot),
-      bookingDemo: () => mutate("/api/bookings/demo", { method: "POST" }).then(setSnapshot),
+      submitBooking: (body) =>
+        mutate("/api/bookings", { method: "POST", body: JSON.stringify(body || {}) }).then(setSnapshot),
+      sendCampusChat: (payload) =>
+        mutate("/api/chat/send", { method: "POST", body: JSON.stringify(payload || {}) }).then(setSnapshot),
       listUsers: async () => {
         const r = await fetch(apiUrl("/api/admin/users"), { headers: { ...bareAuthHeaders } });
         const data = await r.json().catch(() => ({}));

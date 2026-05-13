@@ -33,7 +33,7 @@ export default function StudentRegisterForm({ bare = false }) {
   const body = (
     <>
       <h2>Student registration</h2>
-      <p className="muted">Link your account to a campus student record ID for the dashboard and check-ins (demo roster).</p>
+      <p className="muted">Link your account to a campus student record ID for the dashboard and check-ins.</p>
 
       <div className="counselor-hint-banner counselor-hint-prominent">
         <p className="counselor-hint-title">Are you a campus counselor?</p>

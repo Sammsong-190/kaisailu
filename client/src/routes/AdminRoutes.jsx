@@ -7,6 +7,7 @@ import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
 function Dashboard() {
   const { snapshot, api } = useApi();
   const [csvPickLabel, setCsvPickLabel] = useState("No file selected.");
+  const [resetNotice, setResetNotice] = useState("");
 
   if (!snapshot) return <p className="muted">Loading…</p>;
   const flagged = snapshot.students.filter((s) => s.risk.score != null && s.risk.score >= snapshot.settings.medium);
@@ -65,9 +66,27 @@ function Dashboard() {
         <button type="button" className="btn primary full" onClick={() => api.runDetection()}>
           Run AI detection
         </button>
-        <button type="button" className="btn ghost full" onClick={() => api.reset()}>
-          Reset demo database
+        <button
+          type="button"
+          className="btn ghost full"
+          onClick={async () => {
+            try {
+              setResetNotice("");
+              await api.reset();
+              setResetNotice("系统已恢复默认数据与初始配置。");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            } catch (er) {
+              alert(String(er?.message || er));
+            }
+          }}
+        >
+          Restore default data
         </button>
+        {resetNotice ? (
+          <p className="admin-reset-done" role="status">
+            {resetNotice}
+          </p>
+        ) : null}
       </div>
     </>
   );
@@ -214,11 +233,18 @@ function UsersPage() {
       </div>
 
       <div className="spa-card">
-        <h3>Counselor roster (demo)</h3>
+        <h3>Counselor roster</h3>
         <ul className="spa-list">
           {snapshot.staff.map((u) => (
             <li key={u.id}>
               <strong>{u.name}</strong> — {u.role}
+              {u.title ? <span className="muted tiny-help"> · {u.title}</span> : null}
+              {u.department ? (
+                <>
+                  <br />
+                  <span className="muted tiny-help">{u.department}</span>
+                </>
+              ) : null}
             </li>
           ))}
         </ul>

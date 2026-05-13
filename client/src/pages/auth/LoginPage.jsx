@@ -95,9 +95,6 @@ export default function LoginPage() {
               {" · "}
               <Link to="/register/counselor">Counselor registration</Link>
             </div>
-            <p className="muted tiny-help admin-demo-login-hint">
-              Seeded admin demo: <code>admin@demo.edu</code> / <code>Admin123!</code> (after running <code>db:seed</code> on the server).
-            </p>
           </div>
         </div>
       </div>

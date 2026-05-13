@@ -4,6 +4,12 @@ import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
 import StudentWellnessCharts from "../components/StudentWellnessCharts.jsx";
 import StudentCheckinForm from "../components/StudentCheckinForm.jsx";
 import { moodEmoji } from "../checkinUtils.js";
+import StudentConsentPanel from "../components/StudentConsentPanel.jsx";
+import StudentOverviewWellnessTrend from "../components/StudentOverviewWellnessTrend.jsx";
+import StudentSupportHub from "../components/StudentSupportHub.jsx";
+import StudentBookingConsole from "../components/StudentBookingConsole.jsx";
+import CampusChatHub from "../components/CampusChatHub.jsx";
+
 function Overview() {
   const { snapshot, trend } = useApi();
   if (!snapshot) return null;
@@ -29,7 +35,10 @@ function Overview() {
           </ul>
         </div>
       </div>
-      <StudentWellnessCharts student={s} checkins={checkinEntries} trend={trend} showCampusTrend />
+      <div className="student-wellness-overview-stack">
+        <StudentWellnessCharts student={s} checkins={checkinEntries} trend={trend} showCampusTrend />
+        <StudentOverviewWellnessTrend student={s} checkins={checkinEntries} />
+      </div>
     </>
   );
 }
@@ -61,7 +70,7 @@ function CheckinHistory({ entries }) {
         const mk = typeof row.moodKey === "string" ? row.moodKey : "ok";
         const em = moodEmoji(mk);
         const sleepPart =
-          row.sleepQ != null ? `sleep · ${row.sleepQ}` : row.sleep != null ? `sleep (hrs demo) · ${row.sleep}` : "sleep · —";
+          row.sleepQ != null ? `sleep · ${row.sleepQ}` : row.sleep != null ? `sleep (hrs) · ${row.sleep}` : "sleep · —";
         const noteSnippet =
           typeof row.notes === "string" && row.notes.trim().length > 0
             ? ` · note: "${row.notes.trim().slice(0, 80)}${row.notes.trim().length > 80 ? "…" : ""}"`
@@ -96,13 +105,16 @@ function ConsentPage() {
   const s = snapshot.students.find((x) => x.id === sid);
   if (!s) return null;
   return (
-    <div className="spa-card">
-      <h3>Consent</h3>
-      <p>Fused LMS · gate · library · dining indicators participate only when you opt in.</p>
-      <button type="button" className={`btn full ${s.consent ? "danger" : "safe"}`} onClick={() => api.toggleConsent(sid)}>
-        {s.consent ? "Withdraw behavioral consent" : "Grant consent"}
-      </button>
-    </div>
+    <>
+      <StudentConsentPanel snapshot={snapshot} studentId={sid} api={api} />
+      <div className="spa-card consent-legacy-strip">
+        <h4>Bulk shortcut</h4>
+        <p className="muted tiny-help">Prefer individual toggles above. This flips every stream together.</p>
+        <button type="button" className={`btn full ${s.consent ? "danger" : "safe"}`} onClick={() => api.toggleConsent(sid)}>
+          {s.consent ? "Turn off every data stream" : "Turn on every data stream"}
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -147,58 +159,21 @@ function ReportPage() {
 }
 
 function Resources() {
-  return (
-    <div className="spa-cards-row">
-      <article className="spa-card">
-        <h4>Breathing</h4>
-        <p>5-minute grounding cadence.</p>
-      </article>
-      <article className="spa-card">
-        <h4>Time blocks</h4>
-        <p>Structured study pacing.</p>
-      </article>
-    </div>
-  );
+  return <StudentSupportHub />;
 }
 
 function Booking() {
-  const { api } = useApi();
+  const { snapshot, api } = useApi();
+  if (!snapshot) return null;
   return (
-    <div className="spa-card">
-      <h3>Appointment request</h3>
-      <label className="field">
-        Preferred day<input type="date" />
-      </label>
-      <label className="field">
-        Note<textarea rows={3} />
-      </label>
-      <button type="button" className="btn primary" onClick={() => api.bookingDemo()}>
-        Submit (demo)
-      </button>
+    <div className="booking-page-shell">
+      <StudentBookingConsole staff={snapshot.staff ?? []} submitBooking={(payload) => api.submitBooking(payload)} />
     </div>
   );
 }
 
 function MessagesPage() {
-  return (
-    <div className="spa-card">
-      <h3>Message</h3>
-      <p className="muted">
-        Secure counselling messages will appear here when your institution enables messaging. Below is for layout preview only — nothing is stored or sent yet.
-      </p>
-      <label className="field">
-        To (demo)
-        <input type="text" placeholder="Campus counselling desk" disabled />
-      </label>
-      <label className="field">
-        Your message
-        <textarea rows={5} placeholder="Write your message…" />
-      </label>
-      <button type="button" className="btn primary" disabled title="Messaging not connected in this demo">
-        Send (preview)
-      </button>
-    </div>
-  );
+  return <CampusChatHub mode="student" />;
 }
 
 function Emergency() {

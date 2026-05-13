@@ -21,7 +21,7 @@ export default function CampusMetricsCharts({ timeline, compact }) {
   return (
     <div className={`spa-card ${compact ? "chart-card-compact" : ""}`}>
       <h4>Campus signal metrics · weekly-ish points</h4>
-      <p className="muted tiny-help">Derived from enriched student view, open cases, and follow-up tags (demo synthesis).</p>
+      <p className="muted tiny-help">Derived from enriched student profiles, open cases, and follow-up indicators.</p>
       <ResponsiveContainer width="100%" height={h}>
         <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

@@ -1,6 +1,6 @@
 # SCWIS Fullstack
 
-校园心理与个案相关场景的全栈演示应用：**SCWIS**（Student / Campus Wellness Information System 风格）。前端为 React + Vite，后端为 Express + Prisma（SQLite），支持学生、咨询师、管理员三种角色与 JWT 登录。
+**SCWIS**（Student / Campus Wellness Information System）：校园心理健康与个案工作流前端（React + Vite）与后端（Express + Prisma + SQLite），支持学生、咨询师、管理员三种角色及 JWT 认证。
 
 ## 技术栈
 
@@ -27,7 +27,7 @@ npm run install:all
 cp server/.env.example server/.env
 # 按需编辑 server/.env 中的 DATABASE_URL、JWT_SECRET
 
-# 3. 初始化数据库并写入演示管理员账号
+# 3. 初始化数据库并写入初始帐号（若邮箱不存在则创建）
 npm run db:push --prefix server
 npm run db:seed --prefix server
 
@@ -37,14 +37,17 @@ npm run dev
 
 浏览器访问：<http://localhost:5173>。开发模式下 Vite 会把 `/api` 代理到 `http://127.0.0.1:8788`。
 
-### 演示管理员（Seed）
+### 初始帐号（Seed）
 
-种子脚本会在不存在时创建一个管理员：
+以下帐号仅在数据库中尚不存在对应邮箱时创建；绑定 `S1001` 的学生帐号可用于 Messages 与学生功能联调：
 
-- 邮箱：`admin@demo.edu`
-- 密码：`Admin123!`
+| 角色 | 邮箱 | 密码 | 说明 |
+|------|------|------|------|
+| Admin | `admin@campus.local` | `Admin123!` | 管理与导入名册 |
+| Student | `student@campus.local` | `Student123!` | 已关联名册学号 `S1001` |
+| Counselor | `counselor@campus.local` | `Counselor123!` | 咨询师工作台与咨询会话 |
 
-生产环境请务必修改密码并轮换 `JWT_SECRET`。
+生产环境请务必修改默认密码并轮换 `JWT_SECRET`。
 
 ## 常用脚本（根目录 `package.json`）
 
@@ -62,7 +65,7 @@ npm run dev
 | `npm run dev` | 开发：监听源码变更重启 |
 | `npm start` | 生产：直接运行入口 |
 | `npm run db:push` | 根据 `schema.prisma` 同步 SQLite 结构 |
-| `npm run db:seed` | 运行 `prisma/seed.js`（演示管理员） |
+| `npm run db:seed` | 运行 `prisma/seed.js`（可选：写入管理员、示例学生与咨询师帐号） |
 
 ### 前端（`client/`）
 
@@ -119,11 +122,11 @@ scwis-fullstack/
 | `DATABASE_URL` | `file:./dev.db`（与 `server/.env.example` 一致；SQLite 落在 `server/prisma/dev.db`） |
 | `JWT_SECRET` | 足够长的随机串（勿用仓库占位值） |
 
-保存后 **Redeploy**。**`npm start --prefix server`**（仓库默认服务端启动脚本）会在启动前依次：**`prisma db push`**（建表）→ **`prisma/seed.js`**（若没有管理员则写入 demo 管理员）→ **启动 API**。若在 Railway **自定义 Start Command**，需自行包含等价步骤，否则会缺表。
+保存后 **Redeploy**。**`npm start --prefix server`**（仓库默认服务端启动脚本）会在启动前依次：**`prisma db push`**（建表）→ **`prisma/seed.js`**（若尚无初始管理员则创建）→ **启动 API**。若在 Railway **自定义 Start Command**，需自行包含等价步骤，否则会缺表。
 
 若仍报 **`User` 表不存在**：检查启动命令是否真的跑到上述 `npm start`、`DATABASE_URL` 是否已设置，并重试一次部署。
 
-管理员种子（仅在库里尚无该邮箱时写入）：`admin@demo.edu` / `Admin123!`。
+初始管理员（仅在库里尚无该邮箱时写入）：`admin@campus.local` / `Admin123!`。
 
 SQLite 若没有挂载 **Volume**：容器重建可能丢库；需要持久数据请挂卷或换 **PostgreSQL**。
 

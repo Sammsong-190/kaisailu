@@ -1,4 +1,5 @@
-import { DEFAULT_STUDENTS, enrichStudents } from "./riskEngine.js";
+import { DEFAULT_STUDENTS, enrichStudents, readDataSharing, participatesInRiskSharing, DATA_SHARING_CHANNELS } from "./riskEngine.js";
+import { seedChatThreadsFromRoster } from "./chatSeed.js";
 
 function seedTimeline() {
   const now = Date.now();
@@ -40,7 +41,7 @@ function sleepHrToFive(h) {
   return 5;
 }
 
-const DEMO_MOODS = [
+const MOOD_VARIANTS = [
   { key: "great", mood: "Fantastic" },
   { key: "good", mood: "Good" },
   { key: "ok", mood: "OK" },
@@ -48,7 +49,7 @@ const DEMO_MOODS = [
   { key: "rough", mood: "Rough" },
 ];
 
-const DEMO_NOTES = [
+const CHECKIN_NOTE_SNIPPETS = [
   "Heavy exam week",
   "Slept badly — noisy hall",
   "Better after counselling",
@@ -56,7 +57,7 @@ const DEMO_NOTES = [
   "Family chat helped calm down",
 ];
 
-function demoCheckinsForStudent(student) {
+function syntheticCheckinsForStudent(student) {
   let seed = 0;
   for (let i = 0; i < student.id.length; i++) seed = seed * 33 + student.id.charCodeAt(i);
   const rnd = mulberry32(seed >>> 0);
@@ -77,14 +78,14 @@ function demoCheckinsForStudent(student) {
     const socialLonely = clampR(1, 5, soc + Math.round((rnd() - 0.42) * 2));
 
     const moodScore = clampR(2, 5, Math.round((sleepQ + socialLonely + (6 - stress)) / 3 + rnd() * 1.8 - 0.6));
-    const moodIdx = clampR(0, DEMO_MOODS.length - 1, 5 - moodScore);
-    const { key: moodKey, mood: moodLabel } = DEMO_MOODS[moodIdx];
+    const moodIdx = clampR(0, MOOD_VARIANTS.length - 1, 5 - moodScore);
+    const { key: moodKey, mood: moodLabel } = MOOD_VARIANTS[moodIdx];
 
     const dayHop = Math.floor(16 + rnd() * 62) + i * Math.floor(8 + rnd() * 44);
     const t = Date.now() - dayHop * 3600000;
 
     let notes = "";
-    if (rnd() > 0.68) notes = DEMO_NOTES[Math.floor(rnd() * DEMO_NOTES.length)];
+    if (rnd() > 0.68) notes = CHECKIN_NOTE_SNIPPETS[Math.floor(rnd() * CHECKIN_NOTE_SNIPPETS.length)];
 
     entries.push({
       t,
@@ -102,16 +103,16 @@ function demoCheckinsForStudent(student) {
   return entries.slice(0, 24);
 }
 
-function seedDemoCheckins(students) {
+function seedSyntheticCheckins(students) {
   const out = {};
   for (const s of students) {
-    out[s.id] = demoCheckinsForStudent(s);
+    out[s.id] = syntheticCheckinsForStudent(s);
   }
   return out;
 }
 
 function computeMetricPoint(view, casesOpen) {
-  const consented = view.filter((s) => s.consent);
+  const consented = view.filter((s) => participatesInRiskSharing(s));
   const highs = view.filter((s) => s.risk.level === "High").length;
   const mediumPlus = view.filter((s) => s.risk.level === "High" || s.risk.level === "Medium").length;
   let avgStress = 0;
@@ -146,8 +147,40 @@ function pushMetrics(state) {
 
 function blankState() {
   const students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
+  const staff = [
+    {
+      id: "C01",
+      name: "Dr. Elena Rivera",
+      role: "Counselor",
+      active: true,
+      title: "LPC · trauma-informed · short-term CBT loops",
+      department: "Student Psychological Services",
+      bio:
+        "Anchors anxious perfectionists navigating STEM weed-outs; bilingual intake (EN/ES). Workshops on sleep procrastination guilt, boundary scripts with supervisors, and post-hospital-step-down warm handoffs.",
+    },
+    {
+      id: "C02",
+      name: "Dr. Amaka Okonkwo",
+      role: "Lead counselor",
+      active: true,
+      title: "Clinical director · systemic family lens",
+      department: "Care & Advocacy Office",
+      bio:
+        "Families-of-origin dynamics, grief ambushes mid-semester, and nuanced consent conversations with athletics. Liaises with Title IX education partners; prefers narrative therapy homework between sessions.",
+    },
+    {
+      id: "C03",
+      name: "Dr. Zhen Mei Chen",
+      role: "Counselor educator",
+      active: true,
+      title: "Academic resilience & writing anxiety",
+      department: "Centre for Teaching & Learning Wellness",
+      bio:
+        "Hybrid drop-ins for SAP panels, visa-stress buffering, thesis paralysis. Scripts for asking extensions without shame plus peer-reviewed breathing GIF libraries for laptop-bound researchers.",
+    },
+  ];
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     students,
     cases: [],
     caseArchive: [],
@@ -156,22 +189,59 @@ function blankState() {
     logs: ["Server started", "Consent filter active", "Human-in-the-loop mode enabled"],
     settings: { high: 80, medium: 55, retentionDays: 365 },
     session: { studentId: null },
-    checkins: seedDemoCheckins(students),
-    staff: [
-      { id: "C01", name: "Dr. Rivera", role: "Counselor", active: true },
-      { id: "C02", name: "Dr. Okonkwo", role: "Lead counselor", active: true },
-    ],
+    checkins: seedSyntheticCheckins(students),
+    staff,
+    chatThreads: seedChatThreadsFromRoster(JSON.parse(JSON.stringify(students)), staff),
   };
 }
 
 let state = blankState();
 
-/** Rosters imported without check-ins leave ids with no keys; fill so charts show demo trends */
-function ensureDemoCheckinsForRoster() {
+function ensureChatThreads() {
+  if (!Array.isArray(state.chatThreads) || state.chatThreads.length === 0)
+    state.chatThreads = seedChatThreadsFromRoster(state.students, state.staff);
+}
+
+/** CSV / linkage edge case: roster student has no seeded thread memberships */
+function ensureWelcomeChatForStudent(sid) {
+  if (!sid) return false;
+  if (!state.students.some((s) => s.id === sid)) return false;
+  ensureChatThreads();
+  const participates = state.chatThreads.some((t) => Array.isArray(t.studentIds) && t.studentIds.includes(sid));
+  if (participates) return false;
+
+  const st = state.students.find((s) => s.id === sid);
+  const firstName = typeof st?.name === "string" ? st.name.split(" ")[0] : sid;
+  const now = Date.now();
+  state.chatThreads.push({
+    id: `chat-welcome-${sid}`,
+    kind: "peer",
+    title: `${firstName} · welcome`,
+    subtitle: "Welcome — initial conversation for this student record",
+    studentIds: [sid],
+    counselorId: null,
+    counselorName: null,
+    messages: [
+      {
+        id: `msg-w-${sid}-sys`,
+        ts: now - 3600000,
+        senderKind: "SYSTEM",
+        body:
+          "此会话为系统自动创建。请确认学生帐号已绑定名册中存在的学籍号；绑定后即可继续在此交流。",
+      },
+    ],
+  });
+  logLine(`Chat · auto welcome thread → ${sid}`);
+  pushMetrics(state);
+  return true;
+}
+
+/** Rosters imported without check-ins leave ids with no keys; fill charts with synthetic history where needed */
+function ensureSyntheticCheckinsForRoster() {
   if (!state.checkins || typeof state.checkins !== "object") state.checkins = {};
   for (const s of state.students) {
     const cur = state.checkins[s.id];
-    if (!Array.isArray(cur) || cur.length === 0) state.checkins[s.id] = demoCheckinsForStudent(s);
+    if (!Array.isArray(cur) || cur.length === 0) state.checkins[s.id] = syntheticCheckinsForStudent(s);
   }
 }
 
@@ -283,7 +353,8 @@ function runDetection() {
 
 export const store = {
   snapshot(opts = {}) {
-    ensureDemoCheckinsForRoster();
+    ensureSyntheticCheckinsForRoster();
+    ensureChatThreads();
     pushMetrics(state);
     const session =
       opts.sessionOverride && opts.sessionOverride.studentId !== undefined
@@ -304,6 +375,85 @@ export const store = {
     };
   },
 
+  getChatThreadsForViewer(jwtRole, jwtStudentId, sessionStudentId) {
+    ensureChatThreads();
+    const roleKey = jwtRole == null ? null : String(jwtRole).toUpperCase();
+    const filterForStudentSid = (sid) =>
+      JSON.parse(JSON.stringify(state.chatThreads)).filter(
+        (t) => Array.isArray(t.studentIds) && sid && t.studentIds.includes(sid),
+      );
+
+    if (roleKey === "COUNSELOR") {
+      const all = JSON.parse(JSON.stringify(state.chatThreads));
+      return all.filter((t) => t.kind === "counselor");
+    }
+    if (roleKey === "ADMIN") return [];
+
+    const viewerSid = jwtStudentId || sessionStudentId || null;
+    if (!viewerSid) return [];
+
+    let filtered = filterForStudentSid(viewerSid);
+    if (roleKey === "STUDENT" && jwtStudentId && filtered.length === 0 && ensureWelcomeChatForStudent(jwtStudentId))
+      filtered = filterForStudentSid(viewerSid);
+    return filtered;
+  },
+
+  /**
+   * @param {{ role: 'STUDENT'|'COUNSELOR'; studentProfileId?: string | null }} viewer
+   * @param {{ threadId?: string; text?: string }} body
+   */
+  sendChat(viewer, body) {
+    ensureChatThreads();
+    const tid = String(body?.threadId || "").trim();
+    const textRaw = String(body?.text ?? "").trim();
+    if (!tid) throw new Error("Choose a conversation thread.");
+    if (!textRaw) throw new Error("Message cannot be empty.");
+    const text = textRaw.slice(0, 4000);
+
+    const th = state.chatThreads.find((t) => t.id === tid);
+    if (!th) throw new Error("Thread not found.");
+
+    if (viewer.role === "STUDENT") {
+      const sid = viewer.studentProfileId;
+      if (!sid) throw new Error("Student profile is not linked to this account.");
+      if (!th.studentIds?.includes(sid)) throw new Error("You are not a member of this thread.");
+      const st = state.students.find((s) => s.id === sid);
+      const entry = {
+        id: `msg-${Date.now()}-${sid}`,
+        ts: Date.now(),
+        senderKind: "STUDENT",
+        senderStudentId: sid,
+        senderName: st?.name || sid,
+        body: text,
+      };
+      th.messages.push(entry);
+      th.messages.sort((a, b) => a.ts - b.ts);
+      logLine(`Chat · peer/counselor thread ${tid} ← ${sid}`);
+      pushMetrics(state);
+      return;
+    }
+
+    if (viewer.role === "COUNSELOR") {
+      if (th.kind !== "counselor") throw new Error("Counselors may reply only on counselling threads.");
+      const staffRow = state.staff.find((s) => s.id === th.counselorId) || state.staff[0];
+      const entry = {
+        id: `msg-${Date.now()}-staff-${th.counselorId || ""}`,
+        ts: Date.now(),
+        senderKind: "STAFF",
+        senderStaffId: staffRow?.id || th.counselorId,
+        senderName: staffRow?.name || th.counselorName || "Counselor",
+        body: text,
+      };
+      th.messages.push(entry);
+      th.messages.sort((a, b) => a.ts - b.ts);
+      logLine(`Chat · counselling thread ${tid} ← clinician`);
+      pushMetrics(state);
+      return;
+    }
+
+    throw new Error("Insufficient permission to send messages.");
+  },
+
   studentIds() {
     return state.students.map((s) => s.id);
   },
@@ -321,18 +471,55 @@ export const store = {
 
   reset() {
     state = blankState();
-    logLine("Demo database reset");
+    logLine("System data reset to defaults");
   },
 
   toggleConsent(studentId) {
     const sid = studentId || state.session.studentId || state.selectedId;
-    let was = false;
     state.students = state.students.map((x) => {
       if (x.id !== sid) return x;
-      was = !!x.consent;
-      return { ...x, consent: !x.consent };
+      const cur = readDataSharing(x);
+      const anyOn = DATA_SHARING_CHANNELS.some((k) => cur[k]);
+      const unified = !anyOn;
+      const dataSharing = Object.fromEntries(DATA_SHARING_CHANNELS.map((k) => [k, unified]));
+      /** @type {Record<string, number | null>} */
+      const access = {};
+      for (const k of DATA_SHARING_CHANNELS) access[k] = unified ? Date.now() : null;
+      logLine(`${sid} bulk consent → ${unified ? "all streams on" : "all streams off"}`);
+      return { ...x, consent: unified, dataSharing, sharingAccessAt: access };
     });
-    logLine(`${sid} ${was ? "withdrew" : "granted"} consent`);
+    pushMetrics(state);
+  },
+
+  patchDataSharing(studentId, patchBody = {}) {
+    const sid = studentId || state.session.studentId || state.selectedId;
+    /** @type {Record<string, boolean>} */
+    const delta = {};
+    for (const k of DATA_SHARING_CHANNELS) {
+      if (Object.prototype.hasOwnProperty.call(patchBody, k) && typeof patchBody[k] === "boolean") delta[k] = patchBody[k];
+    }
+    if (!Object.keys(delta).length) return;
+    state.students = state.students.map((x) => {
+      if (x.id !== sid) return x;
+      const base = readDataSharing(x);
+      const nextDs = /** @type {Record<string, boolean>} */ ({ ...base, ...delta });
+      const consent = DATA_SHARING_CHANNELS.some((k) => nextDs[k]);
+      const prevAccess =
+        x.sharingAccessAt && typeof x.sharingAccessAt === "object" ? { ...x.sharingAccessAt } : {};
+      /** @type {Record<string, number | null>} */
+      const sharingAccessAt = { ...prevAccess };
+      for (const k of Object.keys(delta)) {
+        sharingAccessAt[k] = delta[k] ? Date.now() : null;
+      }
+      const keys = Object.keys(delta).join(", ");
+      logLine(`${sid} data sharing ▸ ${keys}`);
+      return {
+        ...x,
+        consent,
+        dataSharing: nextDs,
+        sharingAccessAt,
+      };
+    });
     pushMetrics(state);
   },
 
@@ -345,7 +532,7 @@ export const store = {
     const moodKeys = ["great", "good", "ok", "low", "rough"];
     const mk = moodKeys.includes(body.moodKey) ? body.moodKey : "ok";
     const moodLabel =
-      DEMO_MOODS.find((m) => m.key === mk)?.mood ||
+      MOOD_VARIANTS.find((m) => m.key === mk)?.mood ||
       (typeof body.mood === "string" && body.mood.trim() ? body.mood.trim() : "OK");
     const stress = clampR(1, 5, body.stress ?? 3);
     const sleepQ = clampR(1, 5, body.sleepQ ?? sleepHrToFive(body.sleep) ?? 3);
@@ -487,7 +674,8 @@ export const store = {
     state.students = rows;
     state.cases = [];
     state.caseArchive = [];
-    state.checkins = seedDemoCheckins(rows);
+    state.checkins = seedSyntheticCheckins(rows);
+    state.chatThreads = seedChatThreadsFromRoster(rows, state.staff);
     state.selectedId = rows[0]?.id || state.selectedId;
     logLine(`${rows.length} student rows imported`);
     pushMetrics(state);
@@ -499,11 +687,19 @@ export const store = {
       name: `Counselor ${state.staff.length + 1}`,
       role: "Counselor",
       active: true,
+      title: "Rotating clinician · replace via HR feed",
+      department: "Central counselling intake",
+      bio: "Professional biography pending integration with your HR or directory system.",
     });
     logLine("Staff placeholder added");
   },
 
-  bookingDemo() {
-    logLine("Appointment request captured (demo only)");
+  submitBooking(studentId, payload = {}) {
+    const { counselorId, counselorName, date, slotStart, slotEnd, note } = payload || {};
+    const who = counselorName || counselorId || "counselor";
+    const slot = slotStart && slotEnd ? `${slotStart}–${slotEnd}` : "(unspecified)";
+    const noteSnippet = note && String(note).trim() ? ` · Note: "${String(note).trim().slice(0, 120)}${String(note).trim().length > 120 ? "…" : ""}"` : "";
+    logLine(`${studentId} booking hold · ${who} · ${date || "?"} ${slot}${noteSnippet}`);
+    pushMetrics(state);
   },
 };

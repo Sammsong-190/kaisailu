@@ -2,6 +2,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
@@ -101,16 +102,22 @@ export default function StudentWellnessCharts({ student, checkins, trend, showCa
         </ResponsiveContainer>
       </div>
 
-      <div className="spa-card chart-card-compact">
-        <h4>Campus signal mix (your record)</h4>
-        <p className="muted tiny-help">LMS activity index and visit counts used in the demo risk model (educational only).</p>
-        <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={activityData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis type="category" dataKey="name" width={72} tick={{ fontSize: 11 }} />
+      <div className="spa-card chart-card-compact student-chart-span-2 student-campus-signals-card">
+        <h4>Campus signals (your record)</h4>
+        <p className="muted tiny-help">
+          LMS engagement index plus library / dining / gym visit counts, shown on the same horizontal scale as the chart above.
+        </p>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={activityData} margin={{ top: 8, right: 16, left: 0, bottom: 28 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickCount={6} />
             <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }} />
-            <Bar dataKey="value" name="Count / index" radius={[0, 6, 6, 0]} />
+            <Bar dataKey="value" name="Count / index" radius={[10, 10, 0, 0]} maxBarSize={72}>
+              {activityData.map((row) => (
+                <Cell key={row.name} fill={row.fill} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

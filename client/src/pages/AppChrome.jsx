@@ -20,15 +20,16 @@ const STUDENT_WELLNESS_BLOCK = [
   { path: "report", label: "My wellness report", Icon: IconWellnessReport },
   { path: "resources", label: "Support resources", Icon: IconSupport },
   { path: "booking", label: "Book counselling", Icon: IconCalendar },
-  { path: "message", label: "Message", Icon: IconEnvelope },
+  { path: "message", label: "Messages", Icon: IconEnvelope },
   { path: "emergency", label: "Emergency", Icon: IconEmergency },
 ];
 
 const COUNSELOR_LINKS = [
   { path: "desk", label: "Alert desk" },
+  { path: "messages", label: "Messages" },
   { path: "tracking", label: "Case tracking" },
   { path: "trends", label: "Campus trends" },
-  { path: "student/S1002", label: "Student profile (demo)" },
+  { path: "student/S1002", label: "Student profile" },
 ];
 
 const ADMIN_LINKS = [

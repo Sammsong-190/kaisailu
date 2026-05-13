@@ -3,7 +3,9 @@ import { useApi } from "../ApiProvider.jsx";
 import CaseCard from "../components/CaseCard.jsx";
 import CampusMetricsCharts from "../components/CampusMetricsCharts.jsx";
 import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
+import CampusChatHub from "../components/CampusChatHub.jsx";
 import { moodEmoji } from "../checkinUtils.js";
+import { activeSharingHuman } from "../consentChannels.js";
 
 function reviewHref(c) {
   return `/app/counselor/review/${encodeURIComponent(c.caseId)}`;
@@ -161,7 +163,7 @@ function TrackingPage() {
       </div>
 
       <h3 className="spa-row">Archive</h3>
-      <p className="muted">Students cleared from detection or archived by counselors (demo).</p>
+      <p className="muted">Students cleared from detection or archived.</p>
       <div className="case-table-wrap spa-card">
         <table className="case-table">
           <thead>
@@ -274,13 +276,13 @@ function StudentProfile() {
     <div className="spa-card">
       <h3>{s.name}</h3>
       <p className="muted">
-        {s.id} · consent {s.consent ? "yes" : "no"}
+        {s.id} · streams: {activeSharingHuman(s)}
       </p>
       <span className={`pill ${s.risk.tone}`}>
         {s.risk.level}
         {s.risk.score != null ? ` · ${s.risk.score}` : ""}
       </span>
-      <h4>Behavioral inputs (demo)</h4>
+      <h4>Behavioral inputs</h4>
       <div className="signal-grid">
         {[
           ["LMS activity", s.lms],
@@ -413,7 +415,7 @@ function InterventionPage() {
         <div className="field-row">
           <label className="field">
             Case note
-            <textarea id="caseNoteBody" rows={3} placeholder="Visible to care team (demo store)" />
+            <textarea id="caseNoteBody" rows={3} placeholder="Visible to care team" />
           </label>
           <button
             type="button"
@@ -517,6 +519,7 @@ export default function CounselorRoutes() {
         <Route path="tracking" element={<TrackingPage />} />
         <Route path="cases" element={<Navigate to="../tracking" replace />} />
         <Route path="trends" element={<TrendsPage />} />
+        <Route path="messages" element={<CampusChatHub mode="counselor" />} />
         <Route path="student/:id" element={<StudentProfile />} />
         <Route path="review/:caseId" element={<CaseReviewPage />} />
         <Route path="intervention/:caseId" element={<InterventionPage />} />

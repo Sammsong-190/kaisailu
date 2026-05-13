@@ -10,7 +10,7 @@ export function optionalAuth(req, _res, next) {
   if (!payload || !payload.sub) return next();
   req.auth = {
     userId: payload.sub,
-    role: payload.role,
+    role: typeof payload.role === "string" ? payload.role.toUpperCase() : payload.role,
     studentProfileId: payload.sid || null,
   };
   next();

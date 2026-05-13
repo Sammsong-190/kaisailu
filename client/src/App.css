@@ -45,6 +45,20 @@ code {
   font-weight: 950;
   text-decoration: none;
 }
+.logo.logo-with-emblem {
+  gap: 12px;
+  color: #0f172a;
+}
+
+.logo-emblem-img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
 .logo-mark {
   color: #4f46e5;
 }
@@ -1249,38 +1263,69 @@ code {
   margin-inline: auto;
 }
 
-.entry-auth-sheet--split {
-  display: grid;
-  gap: clamp(22px, 4vw, 36px);
-  align-items: start;
+.entry-auth-sheet--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(18px, 3vw, 26px);
 }
 
-@media (min-width: 880px) {
-  .entry-auth-sheet--split {
-    grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.05fr);
-  }
-
-  .entry-auth-sheet--split > .school-branding-panel {
-    position: sticky;
-    top: 88px;
-  }
+.entry-auth-sheet--stack > .school-branding-panel {
+  padding: clamp(22px, 4vw, 34px) clamp(20px, 4vw, 40px);
+  border-radius: 22px;
+  background: linear-gradient(165deg, rgba(224, 236, 255, 0.92), rgba(238, 230, 255, 0.55));
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.07);
+  text-align: center;
 }
 
-.entry-auth-sheet--split > .school-branding-panel {
-  padding: 22px clamp(18px, 3vw, 26px);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+.entry-auth-sheet--stack > .school-branding-panel .school-branding-panel-main {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: clamp(14px, 3vw, 20px);
+}
+
+.entry-auth-sheet--stack .school-branding-scwis-line {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.65rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.entry-auth-sheet--stack .school-branding-scwis-sub {
+  font-size: 14px;
+  margin-top: 8px;
+  max-width: 36em;
+}
+
+.entry-auth-sheet--stack .school-branding-uni {
+  margin: 0;
+  font-size: 17px;
+}
+
+.entry-auth-sheet--stack .school-branding-uni-en {
+  margin: 6px auto 0 !important;
+  max-width: 34em;
+  font-size: 14px !important;
+}
+
+.entry-auth-sheet--stack .school-branding-emblem-img {
+  width: clamp(112px, 26vw, 152px);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.65),
+    0 10px 28px rgba(30, 58, 138, 0.12);
+}
+
+.entry-auth-sheet--stack .auth-card-entry {
+  padding: clamp(24px, 3.5vw, 40px) clamp(22px, 3.5vw, 42px);
 }
 
 .entry-auth-sheet .auth-card.spa-card {
   width: 100%;
   max-width: none;
-}
-
-.entry-auth-sheet--split .auth-card-entry {
-  padding: clamp(24px, 3.5vw, 40px) clamp(22px, 3.5vw, 42px);
 }
 
 .school-branding-panel {
@@ -1291,12 +1336,6 @@ code {
   display: flex;
   gap: 18px;
   align-items: flex-start;
-}
-
-.entry-auth-sheet--split > .school-branding-panel .school-branding-panel-main {
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
 }
 
 .school-branding-emblem-link {
@@ -1361,10 +1400,6 @@ code {
   margin: 0 !important;
   font-size: 13px !important;
   line-height: 1.45;
-}
-
-.entry-auth-sheet--split > .school-branding-panel .school-branding-scwis-sub {
-  font-size: 12px;
 }
 
 .entry-shell .auth-card-entry {

@@ -62,7 +62,7 @@ export default function LoginPage() {
   return (
     <EntryLayout>
       <div className="auth-page entry-auth-page">
-        <div className="entry-auth-sheet entry-auth-sheet--split">
+        <div className="entry-auth-sheet entry-auth-sheet--stack">
           <SchoolBrandingPanel />
           <div className="auth-card spa-card auth-card-entry">
             <Link className="auth-back muted" to="/">

@@ -31,8 +31,9 @@ export default function Landing() {
       <div className="scwis-flow-layer" aria-hidden />
 
       <nav className="topnav landing-topnav">
-        <Link className="logo" to="/">
-          <span className="logo-mark">◇</span>SCWIS
+        <Link className="logo logo-with-emblem" to="/">
+          <img src="/branding/bnbu-emblem.png" alt="BNBU emblem" className="logo-emblem-img" decoding="async" loading="lazy" />
+          SCWIS
         </Link>
         <div className="nav-cta">
           {authenticated ? (

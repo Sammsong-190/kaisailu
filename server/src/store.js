@@ -166,6 +166,15 @@ function blankState() {
 
 let state = blankState();
 
+/** Rosters imported without check-ins leave ids with no keys; fill so charts show demo trends */
+function ensureDemoCheckinsForRoster() {
+  if (!state.checkins || typeof state.checkins !== "object") state.checkins = {};
+  for (const s of state.students) {
+    const cur = state.checkins[s.id];
+    if (!Array.isArray(cur) || cur.length === 0) state.checkins[s.id] = demoCheckinsForStudent(s);
+  }
+}
+
 function logLine(message) {
   const t = new Date().toISOString().slice(11, 19);
   state.logs.unshift(`${t} — ${message}`);
@@ -274,6 +283,7 @@ function runDetection() {
 
 export const store = {
   snapshot(opts = {}) {
+    ensureDemoCheckinsForRoster();
     pushMetrics(state);
     const session =
       opts.sessionOverride && opts.sessionOverride.studentId !== undefined
@@ -477,6 +487,7 @@ export const store = {
     state.students = rows;
     state.cases = [];
     state.caseArchive = [];
+    state.checkins = seedDemoCheckins(rows);
     state.selectedId = rows[0]?.id || state.selectedId;
     logLine(`${rows.length} student rows imported`);
     pushMetrics(state);

@@ -2,6 +2,8 @@
  * Express API origin without trailing slash. Empty → same-origin requests (local Vite `/api` proxy).
  * Deployed static sites must set `VITE_API_BASE_URL` at build time (e.g. Vercel env vars).
  *
+ * Optional: `VITE_BNBU_EMBLEM_URL` — absolute URL of the official BNBU emblem image (hosted by your team from the VI kit).
+ *
  * Example: https://your-app.onrender.com
  *
  * @param {string} path Absolute path beginning with "/", e.g. "/api/state"

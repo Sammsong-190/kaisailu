@@ -27,8 +27,9 @@ export default function CounselorRegisterPage() {
   return (
     <EntryLayout>
       <div className="auth-page entry-auth-page">
-        <div className="auth-card spa-card auth-card-entry">
-        <SchoolBrandingPanel />
+        <div className="entry-auth-sheet entry-auth-sheet--split">
+          <SchoolBrandingPanel layout="aside" />
+          <div className="auth-card spa-card auth-card-entry">
         <Link className="auth-back muted" to="/login?kind=counselor">
           ← Back to sign in
         </Link>
@@ -62,6 +63,7 @@ export default function CounselorRegisterPage() {
           <Link to="/register">Student registration</Link>
           {" · "}
           <Link to="/login?kind=counselor">Sign in</Link>
+        </div>
         </div>
         </div>
       </div>

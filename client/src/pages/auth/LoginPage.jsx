@@ -62,8 +62,9 @@ export default function LoginPage() {
   return (
     <EntryLayout>
       <div className="auth-page entry-auth-page">
-        <div className="auth-card spa-card auth-card-entry">
-        <SchoolBrandingPanel />
+        <div className="entry-auth-sheet entry-auth-sheet--split">
+          <SchoolBrandingPanel layout="aside" />
+          <div className="auth-card spa-card auth-card-entry">
         <Link className="auth-back muted" to="/">
           ← Back to home
         </Link>
@@ -97,6 +98,7 @@ export default function LoginPage() {
         <p className="muted tiny-help admin-demo-login-hint">
           Seeded admin demo: <code>admin@demo.edu</code> / <code>Admin123!</code> (after running <code>db:seed</code> on the server).
         </p>
+        </div>
         </div>
       </div>
     </EntryLayout>

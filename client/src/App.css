@@ -1117,7 +1117,7 @@ code {
   padding: 32px 5vw;
 }
 .auth-card.spa-card {
-  width: min(440px, 100%);
+  width: 100%;
 }
 .auth-card h2 {
   margin-top: 8px;
@@ -1244,32 +1244,176 @@ code {
   box-shadow: 0 4px 6px rgba(15, 23, 42, 0.08), 0 18px 40px rgba(15, 23, 42, 0.1);
 }
 
-.school-branding-panel {
-  text-align: center;
-  margin: 0 0 10px;
-}
-.school-branding-banner-img {
-  display: block;
-  margin: 0 auto;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: 220px;
-  object-fit: contain;
-}
-
-.auth-register-flow {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  max-width: min(440px, 100%);
-  width: 100%;
+.entry-auth-sheet {
+  width: min(1020px, 94vw);
   margin-inline: auto;
 }
 
-.auth-register-flow .auth-back {
-  align-self: flex-start;
-  margin-bottom: 4px;
+.entry-auth-sheet--split {
+  display: grid;
+  gap: clamp(22px, 4vw, 36px);
+  align-items: start;
+}
+
+@media (min-width: 880px) {
+  .entry-auth-sheet--split {
+    grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.05fr);
+  }
+
+  .entry-auth-sheet--split .school-branding-panel--aside {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+.entry-auth-sheet--split .school-branding-panel--aside {
+  padding: 22px clamp(18px, 3vw, 26px);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.entry-auth-sheet--stack-wide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(760px, 94vw);
+  margin-inline: auto;
+}
+
+.entry-auth-sheet .auth-card.spa-card {
+  width: 100%;
+  max-width: none;
+}
+
+.entry-auth-sheet--split .auth-card-entry {
+  padding: clamp(24px, 3.5vw, 40px) clamp(22px, 3.5vw, 42px);
+}
+
+.school-branding-panel {
+  margin: 0;
+}
+
+.school-branding-panel-main {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.school-branding-panel--aside .school-branding-panel-main {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.school-branding-panel--banner .school-branding-panel-main {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px clamp(14px, 3vw, 28px);
+  padding: clamp(10px, 2vw, 16px);
+  padding-bottom: 4px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+@media (max-width: 560px) {
+  .school-branding-panel--banner .school-branding-panel-main {
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+.school-branding-emblem-link {
+  flex-shrink: 0;
+}
+
+.school-branding-emblem-link:hover {
+  opacity: 0.92;
+}
+
+.school-branding-remote-emblem {
+  width: clamp(76px, 16vw, 96px);
+  height: auto;
+  display: block;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.school-branding-emblem-svg {
+  width: clamp(76px, 16vw, 92px);
+  height: clamp(76px, 16vw, 92px);
+  display: block;
+}
+
+.school-branding-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.school-branding-scwis-line {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.28;
+}
+
+.school-branding-scwis-line strong {
+  letter-spacing: 0.02em;
+}
+
+.school-branding-scwis-sub {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.school-branding-uni {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.school-branding-uni a {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.school-branding-uni a:hover {
+  text-decoration: underline;
+}
+
+.school-branding-uni-en {
+  margin: 0 0 10px !important;
+  font-size: 13px !important;
+  line-height: 1.45;
+}
+
+.school-branding-vi-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.school-branding-vi-note a {
+  color: #4338ca;
+  font-weight: 700;
+}
+
+.school-branding-code {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.07);
+}
+
+.school-branding-panel--aside .school-branding-scwis-sub {
+  font-size: 12px;
 }
 
 .entry-shell .auth-card-entry {

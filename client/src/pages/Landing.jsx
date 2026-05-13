@@ -33,6 +33,7 @@ export default function Landing() {
       <nav className="topnav landing-topnav">
         <Link className="logo logo-with-emblem" to="/">
           <img src="/branding/bnbu-emblem.png" alt="BNBU emblem" className="logo-emblem-img" decoding="async" loading="lazy" />
+          <span className="logo-mark">◇</span>
           SCWIS
         </Link>
         <div className="nav-cta">

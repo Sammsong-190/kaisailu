@@ -10,8 +10,10 @@ export default function EntryLayout({ children }) {
       <div className="scwis-flow-layer" aria-hidden />
 
       <header className="entry-topnav">
-        <Link className="logo entry-logo" to="/">
-          <span className="logo-mark">◇</span>SCWIS
+        <Link className="logo entry-logo logo-with-emblem" to="/">
+          <img src="/branding/bnbu-emblem.png" alt="BNBU emblem" className="logo-emblem-img" decoding="async" loading="lazy" />
+          <span className="logo-mark">◇</span>
+          SCWIS
         </Link>
         <div className="entry-topnav-links">
           <Link className="entry-nav-link ghost-link" to="/login">

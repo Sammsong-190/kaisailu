@@ -2,6 +2,7 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react
 import { useState } from "react";
 import { useApi } from "../../ApiProvider.jsx";
 import EntryLayout from "../../layouts/EntryLayout.jsx";
+import SchoolBrandingPanel from "../../components/SchoolBrandingPanel.jsx";
 
 /** @param {string} role */
 function homePathForRole(role) {
@@ -62,6 +63,7 @@ export default function LoginPage() {
     <EntryLayout>
       <div className="auth-page entry-auth-page">
         <div className="auth-card spa-card auth-card-entry">
+        <SchoolBrandingPanel />
         <Link className="auth-back muted" to="/">
           ← Back to home
         </Link>

@@ -1,14 +1,27 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApi } from "../ApiProvider.jsx";
+import StudentPresencePicker from "../components/StudentPresencePicker.jsx";
+import {
+  IconOverview,
+  IconCheckIn,
+  IconConsent,
+  IconWellnessReport,
+  IconSupport,
+  IconCalendar,
+  IconEnvelope,
+  IconEmergency,
+} from "../components/StudentNavIcons.jsx";
 
-const STUDENT_LINKS = [
-  ["home", "Overview"],
-  ["checkin", "Check-in"],
-  ["consent", "Consent"],
-  ["report", "My report"],
-  ["resources", "Resources"],
-  ["booking", "Book counseling"],
-  ["emergency", "Emergency"],
+const STUDENT_OVERVIEW_LINK = { path: "home", label: "Overview", Icon: IconOverview };
+
+const STUDENT_WELLNESS_BLOCK = [
+  { path: "checkin", label: "Check-in", Icon: IconCheckIn },
+  { path: "consent", label: "Consent & data privacy", Icon: IconConsent },
+  { path: "report", label: "My wellness report", Icon: IconWellnessReport },
+  { path: "resources", label: "Support resources", Icon: IconSupport },
+  { path: "booking", label: "Book counselling", Icon: IconCalendar },
+  { path: "message", label: "Message", Icon: IconEnvelope },
+  { path: "emergency", label: "Emergency", Icon: IconEmergency },
 ];
 
 const COUNSELOR_LINKS = [
@@ -26,23 +39,66 @@ const ADMIN_LINKS = [
   ["trust", "Trust center"],
 ];
 
+function StudentSidebarNav({ base }) {
+  const { path: ovPath, label: ovLabel, Icon: OvIcon } = STUDENT_OVERVIEW_LINK;
+  return (
+    <>
+      <NavLink key={ovPath} className={({ isActive }) => `spa-nav spa-nav-has-icon ${isActive ? "spa-nav-active" : ""}`} to={`${base}/${ovPath}`}>
+        <span className="spa-nav-icon" aria-hidden>
+          <OvIcon />
+        </span>
+        <span className="spa-nav-label">{ovLabel}</span>
+      </NavLink>
+      <div className="spa-nav-section" role="presentation">
+        <span className="spa-nav-section-title">Wellness & support</span>
+      </div>
+      {STUDENT_WELLNESS_BLOCK.map(({ path, label, Icon }) => (
+        <NavLink key={path} className={({ isActive }) => `spa-nav spa-nav-has-icon ${isActive ? "spa-nav-active" : ""}`} to={`${base}/${path}`}>
+          <span className="spa-nav-icon" aria-hidden>
+            <Icon />
+          </span>
+          <span className="spa-nav-label">{label}</span>
+        </NavLink>
+      ))}
+    </>
+  );
+}
+
 export default function AppChrome() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { snapshot, api, user, token } = useApi();
   const portal = pathname.split("/")[2] || "student";
-  let links = STUDENT_LINKS;
   let title = "Student";
-  if (portal === "counselor") {
-    links = COUNSELOR_LINKS;
-    title = "Counselor";
-  }
-  if (portal === "admin") {
-    links = ADMIN_LINKS;
-    title = "Admin";
-  }
+  let showStudentPresence = portal === "student";
+  let navContent;
 
-  const base = `/app/${portal}`;
+  if (portal === "counselor") {
+    title = "Counselor";
+    showStudentPresence = false;
+    const base = `/app/${portal}`;
+    navContent = COUNSELOR_LINKS.map((item) => (
+      <NavLink key={item.path} className={({ isActive }) => `spa-nav ${isActive ? "spa-nav-active" : ""}`} to={`${base}/${item.path}`}>
+        {item.label}
+      </NavLink>
+    ));
+  } else if (portal === "admin") {
+    title = "Admin";
+    showStudentPresence = false;
+    const base = `/app/${portal}`;
+    navContent = ADMIN_LINKS.map((pair) => {
+      const slug = pair[0];
+      const label = pair[1];
+      return (
+        <NavLink key={slug} className={({ isActive }) => `spa-nav ${isActive ? "spa-nav-active" : ""}`} to={`${base}/${slug}`}>
+          {label}
+        </NavLink>
+      );
+    });
+  } else {
+    const base = `/app/student`;
+    navContent = <StudentSidebarNav base={base} />;
+  }
 
   return (
     <div className="app-root">
@@ -50,17 +106,7 @@ export default function AppChrome() {
         <div className="spa-brand">
           <span>◇</span> SCWIS
         </div>
-        <nav className="spa-side-nav">
-          {links.map((item) => {
-            const slug = Array.isArray(item) ? item[0] : item.path;
-            const label = Array.isArray(item) ? item[1] : item.label;
-            return (
-              <NavLink key={slug} className={({ isActive }) => `spa-nav ${isActive ? "spa-nav-active" : ""}`} to={`${base}/${slug}`}>
-                {label}
-              </NavLink>
-            );
-          })}
-        </nav>
+        <nav className="spa-side-nav">{navContent}</nav>
         <div className="spa-side-foot">
           <NavLink className="spa-nav ghost" to="/">
             ← Home
@@ -87,18 +133,21 @@ export default function AppChrome() {
               ) : null}
             </p>
           </div>
-          {(token || (!token && snapshot?.session?.studentId)) && (
-            <button
-              type="button"
-              className="btn ghost btn-sm-spa"
-              onClick={async () => {
-                await api.logout();
-                navigate("/");
-              }}
-            >
-              Sign out
-            </button>
-          )}
+          <div className="app-header-actions">
+            {showStudentPresence ? <StudentPresencePicker /> : null}
+            {(token || (!token && snapshot?.session?.studentId)) && (
+              <button
+                type="button"
+                className="btn ghost btn-sm-spa"
+                onClick={async () => {
+                  await api.logout();
+                  navigate("/");
+                }}
+              >
+                Sign out
+              </button>
+            )}
+          </div>
         </header>
         <main className="app-stage">
           <Outlet />

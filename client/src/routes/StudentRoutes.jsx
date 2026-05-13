@@ -189,6 +189,28 @@ function Booking() {
   );
 }
 
+function MessagesPage() {
+  return (
+    <div className="spa-card">
+      <h3>Message</h3>
+      <p className="muted">
+        Secure counselling messages will appear here when your institution enables messaging. Below is for layout preview only — nothing is stored or sent yet.
+      </p>
+      <label className="field">
+        To (demo)
+        <input type="text" placeholder="Campus counselling desk" disabled />
+      </label>
+      <label className="field">
+        Your message
+        <textarea rows={5} placeholder="Write your message…" />
+      </label>
+      <button type="button" className="btn primary" disabled title="Messaging not connected in this demo">
+        Send (preview)
+      </button>
+    </div>
+  );
+}
+
 function Emergency() {
   return (
     <div className="spa-card warn-card">
@@ -216,6 +238,7 @@ export default function StudentRoutes() {
         <Route path="report" element={<ReportPage />} />
         <Route path="resources" element={<Resources />} />
         <Route path="booking" element={<Booking />} />
+        <Route path="message" element={<MessagesPage />} />
         <Route path="emergency" element={<Emergency />} />
         <Route path="*" element={<Navigate to="home" replace />} />
       </Route>

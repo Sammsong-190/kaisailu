@@ -253,8 +253,22 @@ code {
   color: #fff;
   margin-bottom: 14px;
 }
+.spa-nav-section {
+  margin-top: 6px;
+  padding: 4px 2px 6px;
+  pointer-events: none;
+}
+.spa-nav-section-title {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(226, 232, 240, 0.45);
+}
 .spa-nav {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   position: relative;
   padding: 12px 12px 12px 14px;
   margin-bottom: 4px;
@@ -301,6 +315,114 @@ code {
 .spa-nav.ghost {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
+.spa-nav-has-icon .spa-nav-icon {
+  flex-shrink: 0;
+  opacity: 0.88;
+  display: flex;
+}
+.spa-nav-has-icon.spa-nav-active .spa-nav-icon {
+  opacity: 1;
+}
+.spa-nav-label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.student-presence-picker {
+  position: relative;
+}
+
+.student-presence-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.95);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.student-presence-trigger:hover {
+  border-color: rgba(79, 70, 229, 0.35);
+}
+
+.presence-dot-wrap {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--pr);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.presence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--pd);
+}
+
+.student-presence-chevron {
+  font-size: 10px;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+.student-presence-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 200px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  z-index: 40;
+}
+
+.student-presence-menu li {
+  margin: 0;
+}
+
+.student-presence-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+}
+
+.student-presence-option:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
 .spa-side-foot {
   margin-top: auto;
   padding-top: 24px;
@@ -1120,6 +1242,34 @@ code {
 
 .auth-card-entry {
   box-shadow: 0 4px 6px rgba(15, 23, 42, 0.08), 0 18px 40px rgba(15, 23, 42, 0.1);
+}
+
+.school-branding-panel {
+  text-align: center;
+  margin: 0 0 10px;
+}
+.school-branding-banner-img {
+  display: block;
+  margin: 0 auto;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.auth-register-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-width: min(440px, 100%);
+  width: 100%;
+  margin-inline: auto;
+}
+
+.auth-register-flow .auth-back {
+  align-self: flex-start;
+  margin-bottom: 4px;
 }
 
 .entry-shell .auth-card-entry {

@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useApi } from "../../ApiProvider.jsx";
 import EntryLayout from "../../layouts/EntryLayout.jsx";
+import SchoolBrandingPanel from "../../components/SchoolBrandingPanel.jsx";
 
 export default function CounselorRegisterPage() {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function CounselorRegisterPage() {
     <EntryLayout>
       <div className="auth-page entry-auth-page">
         <div className="auth-card spa-card auth-card-entry">
+        <SchoolBrandingPanel />
         <Link className="auth-back muted" to="/login?kind=counselor">
           ← Back to sign in
         </Link>

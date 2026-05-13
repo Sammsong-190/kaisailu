@@ -1,6 +1,7 @@
 import { Link, Navigate } from "react-router-dom";
 import { useApi } from "../../ApiProvider.jsx";
 import EntryLayout from "../../layouts/EntryLayout.jsx";
+import SchoolBrandingPanel from "../../components/SchoolBrandingPanel.jsx";
 import StudentRegisterForm from "../../components/StudentRegisterForm.jsx";
 
 /** @param {string} role */
@@ -27,7 +28,8 @@ export default function RegisterPage() {
 
   return (
     <EntryLayout>
-      <div className="auth-page entry-auth-page">
+      <div className="auth-page entry-auth-page auth-register-flow">
+        <SchoolBrandingPanel />
         <Link className="auth-back muted" to="/">
           ← Back to home
         </Link>

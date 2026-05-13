@@ -11,8 +11,7 @@ export default function EntryLayout({ children }) {
 
       <header className="entry-topnav">
         <Link className="logo entry-logo logo-with-emblem" to="/">
-          <img src="/branding/bnbu-emblem.png" alt="BNBU emblem" className="logo-emblem-img" decoding="async" loading="lazy" />
-          <span className="logo-mark">◇</span>
+          <img src="/branding/bnbu-emblem.png" alt="" className="logo-emblem-img" decoding="async" loading="lazy" aria-hidden />
           SCWIS
         </Link>
         <div className="entry-topnav-links">

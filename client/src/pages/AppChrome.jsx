@@ -104,7 +104,8 @@ export default function AppChrome() {
     <div className="app-root">
       <aside className="sidebar">
         <div className="spa-brand">
-          <span>◇</span> SCWIS
+          <img src="/branding/bnbu-emblem.png" alt="" className="spa-brand-emblem" width={28} height={28} decoding="async" aria-hidden />
+          SCWIS
         </div>
         <nav className="spa-side-nav">{navContent}</nav>
         <div className="spa-side-foot">

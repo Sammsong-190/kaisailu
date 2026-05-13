@@ -1260,26 +1260,18 @@ code {
     grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.05fr);
   }
 
-  .entry-auth-sheet--split .school-branding-panel--aside {
+  .entry-auth-sheet--split > .school-branding-panel {
     position: sticky;
     top: 88px;
   }
 }
 
-.entry-auth-sheet--split .school-branding-panel--aside {
+.entry-auth-sheet--split > .school-branding-panel {
   padding: 22px clamp(18px, 3vw, 26px);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(15, 23, 42, 0.06);
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
-}
-
-.entry-auth-sheet--stack-wide {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: min(760px, 94vw);
-  margin-inline: auto;
 }
 
 .entry-auth-sheet .auth-card.spa-card {
@@ -1301,29 +1293,10 @@ code {
   align-items: flex-start;
 }
 
-.school-branding-panel--aside .school-branding-panel-main {
+.entry-auth-sheet--split > .school-branding-panel .school-branding-panel-main {
   flex-direction: column;
   align-items: center;
   text-align: center;
-}
-
-.school-branding-panel--banner .school-branding-panel-main {
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 20px clamp(14px, 3vw, 28px);
-  padding: clamp(10px, 2vw, 16px);
-  padding-bottom: 4px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-}
-
-@media (max-width: 560px) {
-  .school-branding-panel--banner .school-branding-panel-main {
-    flex-direction: column;
-    text-align: center;
-    justify-content: center;
-  }
 }
 
 .school-branding-emblem-link {
@@ -1334,18 +1307,14 @@ code {
   opacity: 0.92;
 }
 
-.school-branding-remote-emblem {
-  width: clamp(76px, 16vw, 96px);
+.school-branding-emblem-img {
+  width: clamp(104px, 22vw, 140px);
   height: auto;
   display: block;
-  border-radius: 999px;
-  object-fit: cover;
-}
-
-.school-branding-emblem-svg {
-  width: clamp(76px, 16vw, 92px);
-  height: clamp(76px, 16vw, 92px);
-  display: block;
+  border-radius: 12px;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 .school-branding-copy {
@@ -1389,30 +1358,12 @@ code {
 }
 
 .school-branding-uni-en {
-  margin: 0 0 10px !important;
+  margin: 0 !important;
   font-size: 13px !important;
   line-height: 1.45;
 }
 
-.school-branding-vi-note {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.45;
-}
-
-.school-branding-vi-note a {
-  color: #4338ca;
-  font-weight: 700;
-}
-
-.school-branding-code {
-  font-size: 11px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(15, 23, 42, 0.07);
-}
-
-.school-branding-panel--aside .school-branding-scwis-sub {
+.entry-auth-sheet--split > .school-branding-panel .school-branding-scwis-sub {
   font-size: 12px;
 }
 

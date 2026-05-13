@@ -2,8 +2,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useApi } from "../ApiProvider.jsx";
 
-/** Student registration card (`/register` route). */
-export default function StudentRegisterForm() {
+/**
+ * Student registration (`/register`). When `bare`, renders only inner content — wrap with `auth-card` on the parent (same shell as Login).
+ *
+ * @param {{ bare?: boolean }} props
+ */
+export default function StudentRegisterForm({ bare = false }) {
   const navigate = useNavigate();
   const { api, snapshot, loading } = useApi();
 
@@ -26,8 +30,8 @@ export default function StudentRegisterForm() {
     }
   };
 
-  return (
-    <div className="auth-card spa-card auth-card-entry">
+  const body = (
+    <>
       <h2>Student registration</h2>
       <p className="muted">Link your account to a campus student record ID for the dashboard and check-ins (demo roster).</p>
 
@@ -70,7 +74,14 @@ export default function StudentRegisterForm() {
           Register and open student portal
         </button>
       </form>
+    </>
+  );
 
+  if (bare) return body;
+
+  return (
+    <div className="auth-card spa-card auth-card-entry">
+      {body}
       <div className="auth-footer muted">
         Already have an account? <Link to="/login">Sign in</Link>
       </div>

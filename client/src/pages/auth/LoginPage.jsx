@@ -63,42 +63,42 @@ export default function LoginPage() {
     <EntryLayout>
       <div className="auth-page entry-auth-page">
         <div className="entry-auth-sheet entry-auth-sheet--split">
-          <SchoolBrandingPanel layout="aside" />
+          <SchoolBrandingPanel />
           <div className="auth-card spa-card auth-card-entry">
-        <Link className="auth-back muted" to="/">
-          ← Back to home
-        </Link>
-        <h2>Sign in to SCWIS</h2>
-        <p className="muted">
-          {counselorHint
-            ? "Counselors: sign in with your work email. Need an account? Use counselor registration first."
-            : "One sign-in for everyone. Enter the email and password for your student, counselor, or admin account."}
-        </p>
-        {msg ? <div className="banner-err inline-banner">{msg}</div> : null}
+            <Link className="auth-back muted" to="/">
+              ← Back to home
+            </Link>
+            <h2>Sign in to SCWIS</h2>
+            <p className="muted">
+              {counselorHint
+                ? "Counselors: sign in with your work email. Need an account? Use counselor registration first."
+                : "One sign-in for everyone. Enter the email and password for your student, counselor, or admin account."}
+            </p>
+            {msg ? <div className="banner-err inline-banner">{msg}</div> : null}
 
-        <form className="auth-form" onSubmit={onSubmit}>
-          <label className="field">
-            Email
-            <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </label>
-          <label className="field">
-            Password
-            <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </label>
-          <button type="submit" className="btn primary full">
-            Sign in
-          </button>
-        </form>
+            <form className="auth-form" onSubmit={onSubmit}>
+              <label className="field">
+                Email
+                <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </label>
+              <label className="field">
+                Password
+                <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </label>
+              <button type="submit" className="btn primary full">
+                Sign in
+              </button>
+            </form>
 
-        <div className="auth-footer muted">
-          No account? <Link to="/register">Student registration</Link>
-          {" · "}
-          <Link to="/register/counselor">Counselor registration</Link>
-        </div>
-        <p className="muted tiny-help admin-demo-login-hint">
-          Seeded admin demo: <code>admin@demo.edu</code> / <code>Admin123!</code> (after running <code>db:seed</code> on the server).
-        </p>
-        </div>
+            <div className="auth-footer muted">
+              No account? <Link to="/register">Student registration</Link>
+              {" · "}
+              <Link to="/register/counselor">Counselor registration</Link>
+            </div>
+            <p className="muted tiny-help admin-demo-login-hint">
+              Seeded admin demo: <code>admin@demo.edu</code> / <code>Admin123!</code> (after running <code>db:seed</code> on the server).
+            </p>
+          </div>
         </div>
       </div>
     </EntryLayout>

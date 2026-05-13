@@ -29,17 +29,19 @@ export default function RegisterPage() {
   return (
     <EntryLayout>
       <div className="auth-page entry-auth-page">
-        <div className="entry-auth-sheet entry-auth-sheet--stack-wide">
-          <SchoolBrandingPanel layout="banner" />
-          <Link className="auth-back muted" to="/">
-            ← Back to home
-          </Link>
-        <StudentRegisterForm />
-        <div className="auth-footer muted">
-          Already have an account? <Link to="/login">Sign in</Link>
-          {" · "}
-          Counselor? <Link to="/register/counselor">Register here</Link>
-        </div>
+        <div className="entry-auth-sheet entry-auth-sheet--split">
+          <SchoolBrandingPanel />
+          <div className="auth-card spa-card auth-card-entry">
+            <Link className="auth-back muted" to="/">
+              ← Back to home
+            </Link>
+            <StudentRegisterForm bare />
+            <div className="auth-footer muted">
+              Already have an account? <Link to="/login">Sign in</Link>
+              {" · "}
+              Counselor? <Link to="/register/counselor">Register here</Link>
+            </div>
+          </div>
         </div>
       </div>
     </EntryLayout>

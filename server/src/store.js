@@ -1,5 +1,6 @@
 import { DEFAULT_STUDENTS, enrichStudents, readDataSharing, participatesInRiskSharing, DATA_SHARING_CHANNELS } from "./riskEngine.js";
 import { seedChatThreadsFromRoster } from "./chatSeed.js";
+import { attachDeskPresentationToCases, enrichArchiveCaseRows, deriveArchivedDecisionStatus } from "./caseDeskEnrichment.js";
 
 function seedTimeline() {
   const now = Date.now();
@@ -187,7 +188,7 @@ function blankState() {
     metrics: { timeline: seedTimeline() },
     selectedId: DEFAULT_STUDENTS[0].id,
     logs: ["Server started", "Consent filter active", "Human-in-the-loop mode enabled"],
-    settings: { high: 80, medium: 55, retentionDays: 365 },
+    settings: { high: 80, medium: 55, detectionMinScore: 48, retentionDays: 365 },
     session: { studentId: null },
     checkins: seedSyntheticCheckins(students),
     staff,
@@ -221,19 +222,92 @@ function ensureWelcomeChatForStudent(sid) {
     studentIds: [sid],
     counselorId: null,
     counselorName: null,
+    readAtByViewer: {},
     messages: [
       {
         id: `msg-w-${sid}-sys`,
         ts: now - 3600000,
         senderKind: "SYSTEM",
         body:
-          "此会话为系统自动创建。请确认学生帐号已绑定名册中存在的学籍号；绑定后即可继续在此交流。",
+          "This thread was created automatically. Make sure the student account is linked to a roster student ID that exists in the roster; you can keep messaging here once that link is in place.",
       },
     ],
   });
   logLine(`Chat · auto welcome thread → ${sid}`);
   pushMetrics(state);
   return true;
+}
+
+/** @param {{ id?: string } | null | undefined} th */
+function ensureThreadReadMap(th) {
+  if (!th || typeof th !== "object") return;
+  if (!th.readAtByViewer || typeof th.readAtByViewer !== "object") th.readAtByViewer = {};
+}
+
+/**
+ * @param {{ messages?: { ts?: number }[]; readAtByViewer?: Record<string, number> } } th
+ * @param {string} viewerKey `stu:…` | `usr:…`
+ */
+function unreadCountForThread(th, viewerKey) {
+  const msgs = Array.isArray(th.messages) ? th.messages : [];
+  const lastTs = msgs.length ? Math.max(...msgs.map((m) => Number(m.ts) || 0)) : Date.now();
+  const map = th.readAtByViewer && typeof th.readAtByViewer === "object" ? th.readAtByViewer : {};
+
+  /** @type {number} */
+  let readTs;
+  if (!viewerKey) readTs = lastTs;
+  else if (viewerKey.startsWith("stu:")) {
+    const stored = typeof map[viewerKey] === "number" ? map[viewerKey] : null;
+    readTs = stored != null ? stored : lastTs;
+  } else if (viewerKey.startsWith("usr:")) {
+    const stored = typeof map[viewerKey] === "number" ? map[viewerKey] : null;
+    const demo = typeof th.counselorUnreadWatermark === "number" ? th.counselorUnreadWatermark : null;
+    if (stored != null) readTs = stored;
+    else if (demo != null) readTs = demo;
+    else readTs = lastTs;
+  } else readTs = lastTs;
+
+  return msgs.filter((m) => {
+    const ts = Number(m.ts);
+    if (!m || Number.isNaN(ts)) return false;
+    if (ts <= readTs) return false;
+    if (m.senderKind === "SYSTEM") return false;
+    if (viewerKey.startsWith("stu:")) {
+      const sid = viewerKey.slice(4);
+      if (m.senderKind === "STUDENT") return m.senderStudentId !== sid;
+      if (m.senderKind === "STAFF") return true;
+      return false;
+    }
+    if (viewerKey.startsWith("usr:")) return m.senderKind === "STUDENT";
+    return false;
+  }).length;
+}
+
+/**
+ * @param {Record<string, unknown>} raw cloned thread
+ * @param {string | null} viewerKey
+ */
+function decorateChatThreadForViewer(raw, viewerKey) {
+  ensureThreadReadMap(raw);
+  const unreadCount = viewerKey ? unreadCountForThread(raw, viewerKey) : 0;
+  delete raw.readAtByViewer;
+  delete raw.counselorUnreadWatermark;
+  raw.unreadCount = unreadCount;
+  return raw;
+}
+
+function bumpSenderReadCursor(th, viewer) {
+  ensureThreadReadMap(th);
+  const msgs = Array.isArray(th.messages) ? th.messages : [];
+  const last = msgs.length ? Math.max(...msgs.map((m) => Number(m.ts) || 0)) : Date.now();
+  if (viewer.role === "STUDENT" && viewer.studentProfileId) {
+    const k = `stu:${viewer.studentProfileId}`;
+    th.readAtByViewer[k] = Math.max(th.readAtByViewer[k] ?? 0, last);
+  }
+  if (viewer.role === "COUNSELOR" && viewer.viewerUserId) {
+    const k = `usr:${viewer.viewerUserId}`;
+    th.readAtByViewer[k] = Math.max(th.readAtByViewer[k] ?? 0, last);
+  }
 }
 
 /** Rosters imported without check-ins leave ids with no keys; fill charts with synthetic history where needed */
@@ -254,12 +328,17 @@ function logLine(message) {
 function archiveRemovedCases(previousCases, nextStudentIds) {
   const nextIds = new Set(nextStudentIds);
   previousCases.forEach((c) => {
-    if (!nextIds.has(c.studentId) && !c.archived && c.caseId)
+    if (!nextIds.has(c.studentId) && !c.archived && c.caseId) {
+      const stamp = Date.now();
       state.caseArchive.unshift({
         ...JSON.parse(JSON.stringify(c)),
-        closedAt: Date.now(),
+        archived: true,
+        archivedAt: stamp,
+        closedAt: stamp,
         closedReason: "Cleared — not flagged in latest detection run",
+        decisionStatus: deriveArchivedDecisionStatus({ ...c, archivedAt: stamp, closedAt: stamp }),
       });
+    }
   });
   state.caseArchive = state.caseArchive.slice(0, 80);
 }
@@ -279,6 +358,7 @@ function mergedCase(enrichedStudent, prev) {
     followUps: prev?.followUps ? [...prev.followUps] : [],
     archived: false,
     archivedAt: null,
+    counselorAiFeedback: prev?.counselorAiFeedback ?? null,
   };
 
   const hadActiveCare =
@@ -339,7 +419,9 @@ function runDetection() {
   const previous = [...state.cases];
   const preserved = new Map(previous.map((c) => [c.studentId, JSON.parse(JSON.stringify(c))]));
   const view = enrichStudents(state);
-  const flagged = view.filter((s) => s.risk.score !== null && s.risk.score >= state.settings.medium);
+  const detMin = Number(state.settings.detectionMinScore);
+  const detThreshold = Number.isFinite(detMin) && detMin >= 0 ? detMin : state.settings.medium;
+  const flagged = view.filter((s) => s.risk.score !== null && s.risk.score >= detThreshold);
 
   archiveRemovedCases(
     previous,
@@ -350,6 +432,69 @@ function runDetection() {
   logLine(`${state.cases.length} AI signal(s). No automated intervention.`);
   pushMetrics(state);
 }
+
+/** Populate open cases on cold start and mix workflow states for demos. */
+function seedVirtualOpenCases() {
+  runDetection();
+  const n = state.cases.length;
+  for (let i = 0; i < n; i++) {
+    const c = state.cases[i];
+    const m = i % 7;
+    if (m === 0) continue;
+    if (m === 1) {
+      state.cases[i] = {
+        ...c,
+        reviewStatus: "approved",
+        decision: "Level 2",
+        intervention: "Warm reminder and appointment suggestion",
+        followUpLabel: "Week-by-week observation recommended",
+      };
+    } else if (m === 2) {
+      state.cases[i] = {
+        ...c,
+        reviewStatus: "approved",
+        decision: "Level 1",
+        intervention: "Self-help resource pushed",
+        followUpLabel: "Week-by-week observation recommended",
+      };
+    } else if (m === 3) {
+      state.cases[i] = {
+        ...c,
+        reviewStatus: "approved",
+        decision: "Monitor Only",
+        intervention: "Monitor only",
+        followUpLabel: "Monitoring",
+      };
+    } else if (m === 4) {
+      state.cases[i] = {
+        ...c,
+        reviewStatus: "approved",
+        decision: "Pending",
+        intervention: "Risk confirmed — choose intervention tier",
+        followUpLabel: "Tier selection pending",
+      };
+    } else if (m === 5) {
+      state.cases[i] = {
+        ...c,
+        reviewStatus: "dismissed",
+        decision: "Dismissed",
+        intervention: "None",
+        followUpLabel: "Closed",
+      };
+    } else if (m === 6) {
+      state.cases[i] = {
+        ...c,
+        reviewStatus: "approved",
+        decision: "Level 3",
+        intervention: "Active counselor outreach scheduled",
+        followUpLabel: "Week-by-week observation recommended",
+      };
+    }
+  }
+  pushMetrics(state);
+}
+
+seedVirtualOpenCases();
 
 export const store = {
   snapshot(opts = {}) {
@@ -363,8 +508,8 @@ export const store = {
     return {
       students: enrichStudents(state),
       rawStudents: state.students,
-      cases: JSON.parse(JSON.stringify(state.cases)),
-      caseArchive: JSON.parse(JSON.stringify(state.caseArchive)),
+      cases: attachDeskPresentationToCases(enrichStudents(state), JSON.parse(JSON.stringify(state.cases))),
+      caseArchive: enrichArchiveCaseRows(enrichStudents(state), JSON.parse(JSON.stringify(state.caseArchive))),
       metrics: JSON.parse(JSON.stringify(state.metrics)),
       settings: { ...state.settings },
       logs: [...state.logs],
@@ -375,31 +520,68 @@ export const store = {
     };
   },
 
-  getChatThreadsForViewer(jwtRole, jwtStudentId, sessionStudentId) {
+  getChatThreadsForViewer(jwtRole, jwtStudentId, sessionStudentId, viewerUserId) {
     ensureChatThreads();
     const roleKey = jwtRole == null ? null : String(jwtRole).toUpperCase();
+    const uid = typeof viewerUserId === "string" && viewerUserId ? viewerUserId : null;
+
     const filterForStudentSid = (sid) =>
       JSON.parse(JSON.stringify(state.chatThreads)).filter(
         (t) => Array.isArray(t.studentIds) && sid && t.studentIds.includes(sid),
       );
 
     if (roleKey === "COUNSELOR") {
+      const viewerKey = uid ? `usr:${uid}` : null;
       const all = JSON.parse(JSON.stringify(state.chatThreads));
-      return all.filter((t) => t.kind === "counselor");
+      return all.filter((t) => t.kind === "counselor").map((t) => decorateChatThreadForViewer(t, viewerKey));
     }
     if (roleKey === "ADMIN") return [];
 
     const viewerSid = jwtStudentId || sessionStudentId || null;
     if (!viewerSid) return [];
 
+    const viewerKey = `stu:${viewerSid}`;
     let filtered = filterForStudentSid(viewerSid);
     if (roleKey === "STUDENT" && jwtStudentId && filtered.length === 0 && ensureWelcomeChatForStudent(jwtStudentId))
       filtered = filterForStudentSid(viewerSid);
-    return filtered;
+    return filtered.map((t) => decorateChatThreadForViewer(t, viewerKey));
   },
 
   /**
-   * @param {{ role: 'STUDENT'|'COUNSELOR'; studentProfileId?: string | null }} viewer
+   * @param {{ role: 'STUDENT' | 'COUNSELOR' | 'GUEST_STUDENT'; studentProfileId?: string | null; viewerUserId?: string | null }} viewer
+   * @param {string} threadId
+   */
+  markChatThreadRead(viewer, threadId) {
+    ensureChatThreads();
+    const tid = String(threadId || "").trim();
+    if (!tid) throw new Error("Choose a conversation thread.");
+
+    const th = state.chatThreads.find((t) => t.id === tid);
+    if (!th) throw new Error("Thread not found.");
+
+    const key =
+      viewer.role === "COUNSELOR" && viewer.viewerUserId
+        ? `usr:${viewer.viewerUserId}`
+        : viewer.studentProfileId
+          ? `stu:${viewer.studentProfileId}`
+          : null;
+    if (!key) throw new Error("Cannot resolve viewer for read receipt.");
+
+    if (viewer.role === "STUDENT" || viewer.role === "GUEST_STUDENT") {
+      if (!th.studentIds?.includes(viewer.studentProfileId)) throw new Error("You are not a member of this thread.");
+    } else if (viewer.role === "COUNSELOR") {
+      if (th.kind !== "counselor") throw new Error("Not a counseling thread.");
+    } else throw new Error("Insufficient permission to update read state.");
+
+    ensureThreadReadMap(th);
+    const msgs = Array.isArray(th.messages) ? th.messages : [];
+    const lastTs = msgs.length ? Math.max(...msgs.map((m) => Number(m.ts) || 0)) : Date.now();
+    th.readAtByViewer[key] = Math.max(typeof th.readAtByViewer[key] === "number" ? th.readAtByViewer[key] : 0, lastTs);
+    pushMetrics(state);
+  },
+
+  /**
+   * @param {{ role: 'STUDENT'|'COUNSELOR'; studentProfileId?: string | null; viewerUserId?: string | null }} viewer
    * @param {{ threadId?: string; text?: string }} body
    */
   sendChat(viewer, body) {
@@ -428,6 +610,7 @@ export const store = {
       };
       th.messages.push(entry);
       th.messages.sort((a, b) => a.ts - b.ts);
+      bumpSenderReadCursor(th, viewer);
       logLine(`Chat · peer/counselor thread ${tid} ← ${sid}`);
       pushMetrics(state);
       return;
@@ -446,6 +629,7 @@ export const store = {
       };
       th.messages.push(entry);
       th.messages.sort((a, b) => a.ts - b.ts);
+      bumpSenderReadCursor(th, viewer);
       logLine(`Chat · counselling thread ${tid} ← clinician`);
       pushMetrics(state);
       return;
@@ -471,6 +655,7 @@ export const store = {
 
   reset() {
     state = blankState();
+    seedVirtualOpenCases();
     logLine("System data reset to defaults");
   },
 
@@ -654,11 +839,30 @@ export const store = {
     pushMetrics(state);
   },
 
+  setCaseAiFeedback(caseId, value) {
+    const v = String(value || "").trim();
+    const allowed = new Set(["accurate", "false_positive", "false_negative", "more_context"]);
+    if (!allowed.has(v)) throw new Error("Invalid AI feedback selection.");
+    state.cases = state.cases.map((c) => (c.caseId === caseId ? { ...c, counselorAiFeedback: v } : c));
+    logLine(`AI calibration · ${caseId} · ${v}`);
+    pushMetrics(state);
+  },
+
   archiveCase(caseId) {
     const c = state.cases.find((x) => x.caseId === caseId);
     if (!c) return;
     state.cases = state.cases.filter((x) => x.caseId !== caseId);
-    state.caseArchive.unshift(JSON.parse(JSON.stringify({ ...c, archived: true, archivedAt: Date.now() })));
+    const at = Date.now();
+    state.caseArchive.unshift(
+      JSON.parse(
+        JSON.stringify({
+          ...c,
+          archived: true,
+          archivedAt: at,
+          decisionStatus: deriveArchivedDecisionStatus({ ...c, archivedAt: at, closedAt: c.closedAt || at }),
+        }),
+      ),
+    );
     state.caseArchive = state.caseArchive.slice(0, 80);
     logLine(`Archived case ${caseId}`);
     pushMetrics(state);

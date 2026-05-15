@@ -69,7 +69,7 @@ export function seedChatThreadsFromRoster(students, staff) {
         senderKind: "STUDENT",
         senderStudentId: s1,
         senderName: nameOf(s1),
-        body: "Brutal. 昨晚终于睡了将近 6 小时，虽然中途醒了一次—but I'll take it.",
+        body: "Brutal. Finally got nearly six hours of sleep last night, woke up once in the middle — but I'll take it.",
       }),
       M("m-p7", {
         ts: h(6),
@@ -94,6 +94,10 @@ export function seedChatThreadsFromRoster(students, staff) {
       }),
     ],
   };
+
+  peerAcademic.readAtByViewer = {};
+  if (s1) peerAcademic.readAtByViewer[`stu:${s1}`] = h(10);
+  if (s2) peerAcademic.readAtByViewer[`stu:${s2}`] = h(8);
 
   const peerSleep = {
     id: "chat-peer-sleep",
@@ -326,6 +330,10 @@ export function seedChatThreadsFromRoster(students, staff) {
     ],
   };
 
+  dmRivera.readAtByViewer = {};
+  if (s1) dmRivera.readAtByViewer[`stu:${s1}`] = h(118);
+  dmRivera.counselorUnreadWatermark = h(28);
+
   const dmZhen = {
     id: `chat-cdr-${zhen?.id || "C03"}-${s2}`,
     kind: "counselor",
@@ -388,6 +396,10 @@ export function seedChatThreadsFromRoster(students, staff) {
       }),
     ],
   };
+
+  dmZhen.readAtByViewer = {};
+  if (s2) dmZhen.readAtByViewer[`stu:${s2}`] = h(74);
+  dmZhen.counselorUnreadWatermark = h(35);
 
   /** @type {unknown[]} */
   const dmDaniel =

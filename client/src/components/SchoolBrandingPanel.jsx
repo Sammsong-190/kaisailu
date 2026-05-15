@@ -18,7 +18,7 @@ export default function SchoolBrandingPanel({ className = "" }) {
           </p>
           <p className="school-branding-uni">
             <a href={BNBU_HOME} target="_blank" rel="noreferrer">
-              BNBU · 北师香港浸会大学
+              BNBU · United International College
             </a>
           </p>
           <p className="school-branding-uni-en muted">Beijing Normal–Hong Kong Baptist University</p>

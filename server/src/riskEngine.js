@@ -109,6 +109,136 @@ export const DEFAULT_STUDENTS = [
     sleep: 5.8,
     social: 4,
   },
+  {
+    id: "S1007",
+    name: "Jordan Kim",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 34,
+    library: 0,
+    dining: 4,
+    gym: 0,
+    stress: 5,
+    sleep: 4.2,
+    social: 1,
+  },
+  {
+    id: "S1008",
+    name: "Priya Nair",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 41,
+    library: 1,
+    dining: 5,
+    gym: 0,
+    stress: 5,
+    sleep: 5.1,
+    social: 2,
+  },
+  {
+    id: "S1009",
+    name: "Marcus Johnson",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 70,
+    library: 1,
+    dining: 5,
+    gym: 0,
+    stress: 4,
+    sleep: 7,
+    social: 5,
+  },
+  {
+    id: "S1010",
+    name: "Hannah Müller",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 78,
+    library: 1,
+    dining: 12,
+    gym: 2,
+    stress: 4,
+    sleep: 7,
+    social: 6,
+  },
+  {
+    id: "S1011",
+    name: "Diego Alvarez",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 52,
+    library: 2,
+    dining: 8,
+    gym: 0,
+    stress: 4,
+    sleep: 6.5,
+    social: 5,
+  },
+  {
+    id: "S1012",
+    name: "Yuki Tanaka",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 48,
+    library: 2,
+    dining: 6,
+    gym: 0,
+    stress: 4,
+    sleep: 6.8,
+    social: 4,
+  },
+  {
+    id: "S1013",
+    name: "Fatima El-Sayed",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 44,
+    library: 2,
+    dining: 5,
+    gym: 0,
+    stress: 4,
+    sleep: 6.2,
+    social: 3,
+  },
+  {
+    id: "S1014",
+    name: "Noah Williams",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 30,
+    library: 0,
+    dining: 4,
+    gym: 0,
+    stress: 5,
+    sleep: 4.5,
+    social: 1,
+  },
+  {
+    id: "S1015",
+    name: "Emma Okafor",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 58,
+    library: 1,
+    dining: 5,
+    gym: 4,
+    stress: 4,
+    sleep: 6.9,
+    social: 4,
+  },
+  {
+    id: "S1016",
+    name: "Liam Novak",
+    consent: true,
+    dataSharing: fullSharingFromConsent(true),
+    lms: 85,
+    library: 1,
+    dining: 13,
+    gym: 6,
+    stress: 4,
+    sleep: 8,
+    social: 5,
+  },
 ];
 
 export const TREND = [
@@ -120,51 +250,84 @@ export const TREND = [
   { w: "W6", s: 39, b: 80 },
 ];
 
-export function computeRisk(student, settings) {
-  const ds = readDataSharing(student);
-  if (!DATA_SHARING_CHANNELS.some((k) => ds[k]))
-    return {
-      score: null,
-      level: "Blocked",
-      tone: "blocked",
-      reasons: ["No data streams enabled for analysis — toggle categories under Consent & data privacy."],
-    };
-  let score = 0;
+const ALL_STREAMS_ON = /** @type {Record<DataSharingChannel, boolean>} */ ({
+  lms: true,
+  library: true,
+  dining: true,
+  campus: true,
+  wellness: true,
+});
+
+/**
+ * Rule-engine signals: points (0–100) plus matched reasons.
+ * @param {Record<string, unknown>} student
+ * @param {Record<DataSharingChannel, boolean>} ds
+ */
+function evaluateRiskSignals(student, ds) {
   const reasons = [];
-  const { high, medium } = settings;
-  if (ds.lms && student.lms < 50) {
+  let score = 0;
+  if (ds.lms && Number(student.lms) < 50) {
     score += 22;
     reasons.push("LMS activity decline");
   }
-  if (ds.dining && student.dining < 6) {
+  if (ds.dining && Number(student.dining) < 6) {
     score += 18;
     reasons.push("Irregular dining pattern");
   }
-  if (ds.campus && student.gym === 0) {
+  if (ds.campus && Number(student.gym) === 0) {
     score += 8;
     reasons.push("No physical activity record");
   }
-  if (ds.library && student.library <= 1) {
+  if (ds.library && Number(student.library) <= 1) {
     score += 10;
     reasons.push("Library engagement decreased");
   }
-  if (ds.wellness && student.stress >= 4) {
+  if (ds.wellness && Number(student.stress) >= 4) {
     score += 22;
     reasons.push("High self-reported stress");
   }
-  if (ds.wellness && student.sleep < 5) {
+  if (ds.wellness && Number(student.sleep) < 5) {
     score += 18;
     reasons.push("Sleep below healthy range");
   }
-  if (ds.wellness && student.social <= 2) {
+  if (ds.wellness && Number(student.social) <= 2) {
     score += 15;
     reasons.push("Possible social isolation");
   }
   score = Math.min(100, score);
+  return { score, reasons };
+}
+
+/** @param {{ high: number; medium: number }} settings */
+function classifyCompositeScore(score, reasons, settings) {
+  const { high, medium } = settings;
   if (score >= high) return { score, level: "High", tone: "high", reasons };
   if (score >= medium) return { score, level: "Medium", tone: "medium", reasons };
   if (score >= 30) return { score, level: "Low", tone: "low", reasons };
-  return { score, level: "Balanced", tone: "balanced", reasons: ["No major risk pattern detected"] };
+  return {
+    score,
+    level: "Balanced",
+    tone: "balanced",
+    reasons: reasons.length ? reasons : ["No major risk pattern detected"],
+  };
+}
+
+export function computeRisk(student, settings) {
+  const ds = readDataSharing(student);
+  const hypo = evaluateRiskSignals(student, ALL_STREAMS_ON);
+  const hypotheticalScore = hypo.score;
+
+  if (!DATA_SHARING_CHANNELS.some((k) => ds[k]))
+    return {
+      score: null,
+      hypotheticalScore,
+      level: "Blocked",
+      tone: "blocked",
+      reasons: ["No data streams enabled for analysis — toggle categories under Consent & data privacy."],
+    };
+
+  const { score, reasons } = evaluateRiskSignals(student, ds);
+  return { hypotheticalScore, ...classifyCompositeScore(score, reasons, settings) };
 }
 
 export function enrichStudents(state) {

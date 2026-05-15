@@ -73,7 +73,7 @@ function Dashboard() {
             try {
               setResetNotice("");
               await api.reset();
-              setResetNotice("系统已恢复默认数据与初始配置。");
+              setResetNotice("Default data and initial settings were restored.");
               window.scrollTo({ top: 0, behavior: "smooth" });
             } catch (er) {
               alert(String(er?.message || er));

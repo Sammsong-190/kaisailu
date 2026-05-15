@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApi } from "../ApiProvider.jsx";
 import StudentPresencePicker from "../components/StudentPresencePicker.jsx";
+import CounselorPresencePicker from "../components/CounselorPresencePicker.jsx";
 import {
   IconOverview,
   IconCheckIn,
@@ -28,6 +29,7 @@ const COUNSELOR_LINKS = [
   { path: "desk", label: "Alert desk" },
   { path: "messages", label: "Messages" },
   { path: "tracking", label: "Case tracking" },
+  { path: "appointments", label: "Appointment table" },
   { path: "trends", label: "Campus trends" },
   { path: "student/S1002", label: "Student profile" },
 ];
@@ -72,6 +74,7 @@ export default function AppChrome() {
   const portal = pathname.split("/")[2] || "student";
   let title = "Student";
   let showStudentPresence = portal === "student";
+  let showCounselorPresence = portal === "counselor" && Boolean(user);
   let navContent;
 
   if (portal === "counselor") {
@@ -86,6 +89,7 @@ export default function AppChrome() {
   } else if (portal === "admin") {
     title = "Admin";
     showStudentPresence = false;
+    showCounselorPresence = false;
     const base = `/app/${portal}`;
     navContent = ADMIN_LINKS.map((pair) => {
       const slug = pair[0];
@@ -101,8 +105,11 @@ export default function AppChrome() {
     navContent = <StudentSidebarNav base={base} />;
   }
 
+  const showFlowBackdrop = portal === "student" || portal === "counselor";
+
   return (
-    <div className="app-root">
+    <div className={`app-root${showFlowBackdrop ? " app-root-flow" : ""}`}>
+      {showFlowBackdrop ? <div className="scwis-flow-layer" aria-hidden /> : null}
       <aside className="sidebar">
         <div className="spa-brand">
           <img src="/branding/bnbu-emblem.png" alt="" className="spa-brand-emblem" width={28} height={28} decoding="async" aria-hidden />
@@ -137,6 +144,7 @@ export default function AppChrome() {
           </div>
           <div className="app-header-actions">
             {showStudentPresence ? <StudentPresencePicker /> : null}
+            {showCounselorPresence ? <CounselorPresencePicker /> : null}
             {(token || (!token && snapshot?.session?.studentId)) && (
               <button
                 type="button"

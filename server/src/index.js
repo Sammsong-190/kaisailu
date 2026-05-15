@@ -247,14 +247,49 @@ app.post("/api/checkins", ...studentCh, (req, res) => {
 
 app.post("/api/chat/send", ...studentCounselorCh, (req, res) => {
   try {
-    /** @type {{ role: "STUDENT" | "COUNSELOR"; studentProfileId?: string | null }} */
+    /** @type {{ role: "STUDENT" | "COUNSELOR"; studentProfileId?: string | null; viewerUserId?: string | null }} */
     let viewer;
-    if (req.user.role === "STUDENT") viewer = { role: "STUDENT", studentProfileId: req.user.studentProfileId };
-    else if (req.user.role === "COUNSELOR") viewer = { role: "COUNSELOR" };
+    if (req.user.role === "STUDENT")
+      viewer = { role: "STUDENT", studentProfileId: req.user.studentProfileId, viewerUserId: req.user.id };
+    else if (req.user.role === "COUNSELOR") viewer = { role: "COUNSELOR", viewerUserId: req.user.id };
     else return res.status(403).json({ error: "Only students and counselors can send campus messages." });
 
     store.sendChat(viewer, req.body || {});
     res.json(snapshotForPrismaUser(req.user));
+  } catch (e) {
+    res.status(400).json({ error: String(e.message) });
+  }
+});
+
+/** Optional JWT: guest student uses session only; signed-in users load Prisma row when token present. */
+async function attachPrismaUserIfPresent(req, res, next) {
+  if (!req.auth?.userId) return next();
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.auth.userId } });
+    if (user) req.user = user;
+  } catch (e) {
+    return res.status(500).json({ error: String(e.message) });
+  }
+  next();
+}
+
+function inferCampusChatReadViewer(reqUser, sessionStudentId) {
+  if (reqUser?.role === "STUDENT" && reqUser.studentProfileId)
+    return { role: /** @type {const} */ ("STUDENT"), studentProfileId: reqUser.studentProfileId, viewerUserId: reqUser.id };
+  if (reqUser?.role === "COUNSELOR") return { role: /** @type {const} */ ("COUNSELOR"), studentProfileId: null, viewerUserId: reqUser.id };
+  if (!reqUser && sessionStudentId)
+    return { role: /** @type {const} */ ("GUEST_STUDENT"), studentProfileId: sessionStudentId, viewerUserId: null };
+  return null;
+}
+
+app.post("/api/chat/read", optionalAuth, attachPrismaUserIfPresent, (req, res) => {
+  try {
+    const sessionStudentId = store.snapshot().session?.studentId ?? null;
+    const viewer = inferCampusChatReadViewer(req.user, sessionStudentId);
+    if (!viewer) return res.status(401).json({ error: "Sign in or pick a guest profile to sync read receipts." });
+    store.markChatThreadRead(viewer, String((req.body || {}).threadId || "").trim());
+    if (req.user) res.json(snapshotForPrismaUser(req.user));
+    else res.json(snapshotForViewer(null));
   } catch (e) {
     res.status(400).json({ error: String(e.message) });
   }
@@ -298,6 +333,15 @@ app.post("/api/cases/:caseId/follow-up", ...counselorOrAdminCh, (req, res) => {
 app.post("/api/cases/:caseId/archive", ...counselorOrAdminCh, (req, res) => {
   store.archiveCase(req.params.caseId);
   res.json(snapshotForPrismaUser(req.user));
+});
+
+app.post("/api/cases/:caseId/ai-feedback", ...counselorOrAdminCh, (req, res) => {
+  try {
+    store.setCaseAiFeedback(req.params.caseId, (req.body || {}).value);
+    res.json(snapshotForPrismaUser(req.user));
+  } catch (e) {
+    res.status(400).json({ error: String(e.message) });
+  }
 });
 
 app.patch("/api/settings", ...adminOnlyCh, (req, res) => {

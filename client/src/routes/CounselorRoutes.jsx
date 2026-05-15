@@ -1,6 +1,11 @@
 import { Routes, Route, Navigate, useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useApi } from "../ApiProvider.jsx";
 import CaseCard from "../components/CaseCard.jsx";
+import AlertDeskCaseCard from "../components/AlertDeskCaseCard.jsx";
+import HumanReviewPanel, { displayLevel } from "../components/HumanReviewPanel.jsx";
+import AppointmentTableSection from "../components/AppointmentTableSection.jsx";
 import CampusMetricsCharts from "../components/CampusMetricsCharts.jsx";
 import { RequirePortalRole } from "../components/RequirePortalRole.jsx";
 import CampusChatHub from "../components/CampusChatHub.jsx";
@@ -47,24 +52,26 @@ function Desk() {
         {["High", "Medium", "Low"].map((lv) => (
           <div key={lv} className="risk-pool spa-card">
             <h4>{lv}</h4>
-            <div className="case-grid case-grid-tight">
-              {byLevel(lv).length === 0 ? (
-                <div className="empty empty-inline">
-                  <span className="muted">No open cases</span>
-                </div>
-              ) : (
-                byLevel(lv).map((c) => (
-                  <CaseCard
-                    key={c.caseId}
-                    c={c}
-                    reviewPath={reviewHref(c)}
-                    interventionPath={interventionHref(c)}
-                    onApprove={() => api.approveCase(c.caseId)}
-                    onDismiss={() => api.dismissCase(c.caseId)}
-                    onTier={(tier) => api.setTier(c.caseId, tier).catch((e) => alert(e.message))}
-                  />
-                ))
-              )}
+            <div className="risk-pool-body">
+              <div className="case-grid case-grid-tight">
+                {byLevel(lv).length === 0 ? (
+                  <div className="empty empty-inline">
+                    <span className="muted">No open cases</span>
+                  </div>
+                ) : (
+                  byLevel(lv).map((c) => (
+                    <AlertDeskCaseCard
+                      key={c.caseId}
+                      c={c}
+                      reviewPath={reviewHref(c)}
+                      interventionPath={interventionHref(c)}
+                      onApprove={() => api.approveCase(c.caseId)}
+                      onDismiss={() => api.dismissCase(c.caseId)}
+                      onTier={(tier) => api.setTier(c.caseId, tier).catch((e) => alert(e.message))}
+                    />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -76,7 +83,7 @@ function Desk() {
             {snapshot.cases
               .filter((c) => !["High", "Medium", "Low"].includes(c.level))
               .map((c) => (
-                <CaseCard
+                <AlertDeskCaseCard
                   key={c.caseId}
                   c={c}
                   reviewPath={reviewHref(c)}
@@ -93,6 +100,15 @@ function Desk() {
   );
 }
 
+function AppointmentsPage() {
+  const { snapshot } = useApi();
+  if (!snapshot) return <p className="muted">Loading…</p>;
+  const caseDisplayIds = snapshot.cases
+    .map((c) => (typeof c.trackingCaseDisplayId === "string" ? c.trackingCaseDisplayId : ""))
+    .filter(Boolean);
+  return <AppointmentTableSection caseDisplayIds={caseDisplayIds} />;
+}
+
 function formatTs(ts) {
   if (!ts) return "—";
   try {
@@ -103,97 +119,111 @@ function formatTs(ts) {
 }
 
 function TrackingPage() {
-  const { snapshot } = useApi();
+  const { snapshot, api } = useApi();
+  const [selectedCaseId, setSelectedCaseId] = useState(/** @type {string | null} */ (null));
+
+  useEffect(() => {
+    if (selectedCaseId && !snapshot?.cases?.some((x) => x.caseId === selectedCaseId)) setSelectedCaseId(null);
+  }, [snapshot?.cases, selectedCaseId]);
+
   if (!snapshot) return <p className="muted">Loading…</p>;
   const arch = snapshot.caseArchive || [];
+  const selected = snapshot.cases.find((x) => x.caseId === selectedCaseId) ?? null;
 
   return (
     <>
       <h3>Case tracking sheet</h3>
-      <p className="muted">Open cases from the latest detection plus workflow state, notes, and follow-ups.</p>
-      <div className="case-table-wrap spa-card">
-        <table className="case-table">
-          <thead>
-            <tr>
-              <th>Case</th>
-              <th>Student</th>
-              <th>Level</th>
-              <th>Review</th>
-              <th>Decision</th>
-              <th>Follow-up tag</th>
-              <th>Notes / F/U</th>
-              <th>Links</th>
-            </tr>
-          </thead>
-          <tbody>
-            {snapshot.cases.length === 0 ? (
-              <tr>
-                <td colSpan={8}>
-                  <span className="muted">No open cases · run detection from the desk.</span>
-                </td>
-              </tr>
-            ) : (
-              snapshot.cases.map((c) => (
-                <tr key={c.caseId}>
-                  <td>
-                    <code>{c.caseId}</code>
-                  </td>
-                  <td>{c.name}</td>
-                  <td>{c.level}</td>
-                  <td>{c.reviewStatus}</td>
-                  <td>{c.decision}</td>
-                  <td>{c.followUpLabel || "—"}</td>
-                  <td>
-                    {(c.counselorNotes || []).length} / {(c.followUps || []).length}
-                  </td>
-                  <td>
-                    <Link className="link-subtle" to={reviewHref(c)}>
-                      Review
-                    </Link>
-                    {" · "}
-                    <Link className="link-subtle" to={interventionHref(c)}>
-                      Intervention
-                    </Link>
-                  </td>
+      <p className="muted">Open cases from detection — select a row to review the AI verdict and route next steps.</p>
+      <div className="tracking-sheet-layout">
+        <div className="case-table-wrap spa-card tracking-table-card">
+          <div className="tracking-table-scroll">
+            <table className="case-table tracking-case-table">
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Level</th>
+                  <th className="tracking-col-review">Review</th>
+                  <th>Follow-up tag</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {snapshot.cases.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>
+                      <span className="muted">No open cases · run detection from the desk.</span>
+                    </td>
+                  </tr>
+                ) : (
+                  snapshot.cases.map((c) => {
+                    const id = typeof c.caseId === "string" ? c.caseId : "";
+                    const label = typeof c.trackingCaseDisplayId === "string" ? c.trackingCaseDisplayId : id;
+                    const brief = typeof c.aiReviewBrief === "string" ? c.aiReviewBrief : "—";
+                    const tag = typeof c.riskCategory === "string" ? c.riskCategory : "—";
+                    const active = selectedCaseId === id;
+                    return (
+                      <tr
+                        key={id}
+                        className={`case-tracking-row ${active ? "case-tracking-row-active" : ""}`}
+                        onClick={() => setSelectedCaseId(id)}
+                        onKeyDown={(ev) => {
+                          if (ev.key === "Enter" || ev.key === " ") {
+                            ev.preventDefault();
+                            setSelectedCaseId(id);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-pressed={active}
+                        aria-label={`Open case ${label}`}
+                      >
+                        <td>
+                          <code>{label}</code>
+                        </td>
+                        <td>
+                          <span className={`tracking-level tracking-level-${String(c.level || "").toLowerCase()}`}>{displayLevel(c.level)}</span>
+                        </td>
+                        <td className="tracking-col-review">
+                          <span className="tracking-review-snippet">{brief}</span>
+                        </td>
+                        <td>{tag}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <HumanReviewPanel c={selected} api={api} interventionPath={selected ? interventionHref(selected) : "#"} />
       </div>
 
       <h3 className="spa-row">Archive</h3>
-      <p className="muted">Students cleared from detection or archived.</p>
+      <p className="muted">Historical closures from your workflow.</p>
       <div className="case-table-wrap spa-card">
         <table className="case-table">
           <thead>
             <tr>
               <th>Case</th>
-              <th>Student</th>
               <th>Closed</th>
-              <th>Last decision</th>
-              <th>Notes / F/U</th>
+              <th>Decision status</th>
             </tr>
           </thead>
           <tbody>
             {arch.length === 0 ? (
               <tr>
-                <td colSpan={5}>
+                <td colSpan={3}>
                   <span className="muted">No archived cases yet.</span>
                 </td>
               </tr>
             ) : (
               arch.map((c) => (
-                <tr key={`${c.caseId}-${c.archivedAt}`}>
+                <tr key={`${c.caseId}-${c.archivedAt || c.closedAt || ""}`}>
                   <td>
-                    <code>{c.caseId}</code>
+                    <code>{typeof c.trackingCaseDisplayId === "string" ? c.trackingCaseDisplayId : c.caseId}</code>
                   </td>
-                  <td>{c.name}</td>
                   <td>{formatTs(c.archivedAt || c.closedAt)}</td>
-                  <td>{c.decision}</td>
-                  <td>
-                    {(c.counselorNotes || []).length} / {(c.followUps || []).length}
-                  </td>
+                  <td>{typeof c.decisionStatus === "string" ? c.decisionStatus : "—"}</td>
                 </tr>
               ))
             )}
@@ -204,54 +234,146 @@ function TrackingPage() {
   );
 }
 
+/** @param {Record<string, unknown> | undefined} risk */
+function parseNumericRiskField(risk, key) {
+  const raw = risk?.[key];
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+/** interpolate bar color along 0–100: blue → red */
+function counselorRiskScoreColor(score) {
+  let t = Number(score);
+  if (!Number.isFinite(t)) t = 0;
+  t = Math.max(0, Math.min(1, t / 100));
+  const r0 = 30;
+  const g0 = 64;
+  const b0 = 175;
+  const r1 = 185;
+  const g1 = 28;
+  const b1 = 28;
+  const r = Math.round(r0 + (r1 - r0) * t);
+  const g = Math.round(g0 + (g1 - g0) * t);
+  const bl = Math.round(b0 + (b1 - b0) * t);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+}
+
+/** Renders risk bar; widens almost-zero-width bars for score 0 so rows stay visible. */
+function CounselorRiskBarShape(entry) {
+  const { x = 0, y = 0, width = 0, height = 0, payload } = entry;
+  const px = Number(x);
+  const py = Number(y);
+  const h = Number(height);
+  const bw = Math.max(0, Number(width));
+  const sc = Number(payload?.score);
+
+  let w = bw;
+  if (Number.isFinite(sc)) {
+    if (sc <= 0) w = Math.max(w, 10);
+    else if (w > 0 && w < 4) w = 4;
+  }
+
+  const fill = Number.isFinite(sc) ? counselorRiskScoreColor(sc) : "#94a3b8";
+  return <rect x={px} y={py} width={w} height={h} rx={2} ry={2} fill={fill} />;
+}
+
 function TrendsPage() {
   const { snapshot, trend } = useApi();
   if (!snapshot) return <p className="muted">Loading…</p>;
   const timeline = snapshot.metrics?.timeline;
 
+  const stressWellSeries = (Array.isArray(trend) && trend.length ? trend : [{ w: "—", s: 0, b: 0 }]).map((d) => ({
+    week: d.w,
+    stress: d.s,
+    wellbeing: d.b,
+  }));
+
+  const riskRows = snapshot.students.map((s) => {
+    const recorded = parseNumericRiskField(s.risk, "score");
+    const hypothetical = parseNumericRiskField(s.risk, "hypotheticalScore");
+
+    /** @type {"recorded" | "hypothetical" | "none"} */
+    let scoreDisplaySource = "none";
+    let score = 0;
+    if (recorded !== null) {
+      scoreDisplaySource = "recorded";
+      score = recorded;
+    } else if (hypothetical !== null) {
+      scoreDisplaySource = "hypothetical";
+      score = hypothetical;
+    }
+
+    return {
+      id: s.id,
+      studentLabel: s.id,
+      score,
+      scoreDisplaySource,
+      level: typeof s.risk?.level === "string" ? s.risk.level : "—",
+    };
+  });
+
+  const axisTick = { fontSize: 11, fill: "#64748b" };
+  const axisLineStyle = { stroke: "#cbd5e1" };
+
   return (
     <>
       <CampusMetricsCharts timeline={timeline} compact />
-      <div className="spa-card">
+      <div className="spa-card chart-card-compact counselor-trends-chart-card">
         <h4>Stress vs wellbeing (illustrative)</h4>
-        <div className="trend-chart">
-          {(trend || []).map((d) => (
-            <div key={d.w} className="trendCol">
-              <div className="trendBars">
-                <div className="trendBar stress" style={{ height: d.s * 1.55 }} />
-                <div className="trendBar well" style={{ height: d.b * 1.55 }} />
-              </div>
-              <span>{d.w}</span>
-            </div>
-          ))}
-        </div>
+        <p className="muted tiny-help">Campus-wide indices on a shared 0–100 scale — week-over-week directional context only.</p>
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={stressWellSeries} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="week" tick={axisTick} tickLine={{ stroke: "#cbd5e1" }} axisLine={axisLineStyle} />
+            <YAxis domain={[0, 100]} tick={axisTick} tickLine={{ stroke: "#cbd5e1" }} axisLine={axisLineStyle} width={40} />
+            <Tooltip
+              formatter={(value, name) => [value, name === "stress" ? "Stress index" : "Wellbeing index"]}
+              labelFormatter={(w) => `Week ${w}`}
+              contentStyle={{ borderRadius: 6, border: "1px solid #e2e8f0", fontSize: 12 }}
+            />
+            <Legend
+              formatter={(value) => (value === "stress" ? "Stress index" : "Wellbeing index")}
+              wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
+            />
+            <Bar dataKey="stress" name="stress" fill="#b45309" radius={[2, 2, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="wellbeing" name="wellbeing" fill="#1e5938" radius={[2, 2, 0, 0]} maxBarSize={32} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-      <div className="spa-card">
+      <div className="spa-card chart-card-compact counselor-trends-chart-card">
         <h4>Current risk scores (enriched)</h4>
-        <div className="bar-chart">
-          {snapshot.students.map((s) => {
-            const v = s.risk.score || 0;
-            const hue =
-              s.risk.level === "High"
-                ? "red"
-                : s.risk.level === "Medium"
-                  ? "amber"
-                  : s.risk.level === "Low"
-                    ? "cyan"
-                    : s.risk.level === "Blocked"
-                      ? "gray"
-                      : "greenB";
-            return (
-              <div key={s.id} className="barItem">
-                <div className="barTrack">
-                  <div className={`barFill ${hue}`} style={{ height: `${v}%` }} />
-                </div>
-                <span>{s.id.replace("S", "")}</span>
-                <b>{v}</b>
-              </div>
-            );
-          })}
-        </div>
+        <p className="muted tiny-help">
+          Composite 0–100 with a blue→red ramp. Values come from recorded signals when streams are shared; otherwise the bar shows a hypothetical score (same rules, all streams on) so every student stays comparable—see tooltip.
+        </p>
+        {riskRows.length === 0 ? (
+          <p className="muted">No roster students to chart.</p>
+        ) : (
+          <div className="counselor-risk-chart-wrap">
+            <ResponsiveContainer width="100%" height={Math.min(560, Math.max(260, riskRows.length * 34))}>
+              <BarChart layout="vertical" data={riskRows} margin={{ top: 8, right: 16, left: 4, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={axisTick} tickLine={{ stroke: "#cbd5e1" }} axisLine={axisLineStyle} />
+                <YAxis type="category" dataKey="studentLabel" tick={axisTick} tickLine={false} axisLine={axisLineStyle} width={76} />
+                <Tooltip
+                  formatter={(_value, _name, props) => {
+                    const p = props?.payload;
+                    if (!p) return ["—", "Score"];
+                    if (p.scoreDisplaySource === "hypothetical")
+                      return [`${p.score} (hypothetical — no streams shared)`, "Counselor estimate"];
+                    if (p.scoreDisplaySource === "none") return [`${p.score}`, "Score unavailable"];
+                    return [`${p.score} (${p.level ?? "—"})`, "Score"];
+                  }}
+                  contentStyle={{ borderRadius: 6, border: "1px solid #e2e8f0", fontSize: 12 }}
+                />
+                <Bar dataKey="score" name="Risk score" barSize={14} shape={CounselorRiskBarShape} isAnimationActive={false} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </>
   );
@@ -517,6 +639,7 @@ export default function CounselorRoutes() {
         <Route path="desk" element={<Desk />} />
         <Route path="home" element={<Navigate to="../desk" replace />} />
         <Route path="tracking" element={<TrackingPage />} />
+        <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="cases" element={<Navigate to="../tracking" replace />} />
         <Route path="trends" element={<TrendsPage />} />
         <Route path="messages" element={<CampusChatHub mode="counselor" />} />

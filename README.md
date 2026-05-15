@@ -1,154 +1,154 @@
 # SCWIS Fullstack
 
-**SCWIS**（Student / Campus Wellness Information System）：校园心理健康与个案工作流前端（React + Vite）与后端（Express + Prisma + SQLite），支持学生、咨询师、管理员三种角色及 JWT 认证。
+**SCWIS** (Student / Campus Wellness Information System) is a full-stack app for campus mental-health and case workflows: a **React + Vite** front end and an **Express + Prisma + SQLite** API, with **student**, **counselor**, and **admin** roles plus **JWT** authentication.
 
-## 技术栈
+## Stack
 
-| 部分 | 技术 |
-|------|------|
-| 前端 | React 18、React Router、Vite 5、Recharts |
-| 后端 | Node.js 18+、Express、Prisma、SQLite |
-| 认证 | JWT、bcrypt |
+| Layer    | Technology                                      |
+|----------|--------------------------------------------------|
+| Frontend | React 18, React Router, Vite 5, Recharts         |
+| Backend  | Node.js 18+, Express, Prisma, SQLite             |
+| Auth     | JWT, bcrypt                                      |
 
-## 环境要求
+## Requirements
 
 - [Node.js](https://nodejs.org/) **≥ 18**
 
-## 快速开始
+## Quick start
 
-在仓库内的 `scwis-fullstack` 目录下执行：
+Run these commands from `scwis-fullstack`:
 
 ```bash
-# 1. 安装根目录依赖（concurrently）以及 client / server
+# 1. Install root (concurrently) and client/server dependencies
 npm install
 npm run install:all
 
-# 2. 服务端环境变量（若尚无 .env）
+# 2. Server env (when .env does not exist yet)
 cp server/.env.example server/.env
-# 按需编辑 server/.env 中的 DATABASE_URL、JWT_SECRET
+# Edit DATABASE_URL and JWT_SECRET in server/.env as needed
 
-# 3. 初始化数据库并写入初始帐号（若邮箱不存在则创建）
+# 3. Create DB tables and seed initial accounts (skipped if emails already exist)
 npm run db:push --prefix server
 npm run db:seed --prefix server
 
-# 4. 同时启动 API（默认 8788）与前端开发服务器（默认 5173）
+# 4. Start API (8788) and dev server (5173) together
 npm run dev
 ```
 
-浏览器访问：<http://localhost:5173>。开发模式下 Vite 会把 `/api` 代理到 `http://127.0.0.1:8788`。
+Open <http://localhost:5173>. In dev mode, Vite proxies `/api` to `http://127.0.0.1:8788`.
 
-### 初始帐号（Seed）
+### Seed accounts
 
-以下帐号仅在数据库中尚不存在对应邮箱时创建；绑定 `S1001` 的学生帐号可用于 Messages 与学生功能联调：
+These are created only when that email address is not yet in the database. The seeded student tied to **`S1001`** is handy for Messages and student flows:
 
-| 角色 | 邮箱 | 密码 | 说明 |
-|------|------|------|------|
-| Admin | `admin@campus.local` | `Admin123!` | 管理与导入名册 |
-| Student | `student@campus.local` | `Student123!` | 已关联名册学号 `S1001` |
-| Counselor | `counselor@campus.local` | `Counselor123!` | 咨询师工作台与咨询会话 |
+| Role      | Email                        | Password        | Notes                                    |
+|-----------|------------------------------|-----------------|-------------------------------------------|
+| Admin     | `admin@campus.local`         | `Admin123!`     | Imports roster, admin tooling             |
+| Student   | `student@campus.local`       | `Student123!`   | Linked roster ID **`S1001`**              |
+| Counselor | `counselor@campus.local`   | `Counselor123!` | Counseling desk and messaging             |
 
-生产环境请务必修改默认密码并轮换 `JWT_SECRET`。
+Rotate **`JWT_SECRET`** and change passwords before production.
 
-## 常用脚本（根目录 `package.json`）
+## Root scripts (`package.json`)
 
-| 命令 | 说明 |
-|------|------|
-| `npm run install:all` | 分别安装 `server` 与 `client` 依赖 |
-| `npm run dev` | 并行启动服务端 `dev`（`node --watch`）与前端 `vite` |
-| `npm run build` | 构建前端静态资源到 `client/dist` |
-| `npm run start` | 仅启动生产模式的 API（需已构建前端则由你自行托管或通过其它方式访问） |
+| Command               | Purpose                                                |
+|-----------------------|--------------------------------------------------------|
+| `npm run install:all` | Install `server` and `client` deps                     |
+| `npm run dev`         | API (`node --watch`) + `vite` in parallel               |
+| `npm run build`       | Build static assets → `client/dist`                    |
+| `npm run start`       | Production API only (serve the built UI yourself)       |
 
-### 服务端（`server/`）
+### Server (`server/`)
 
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | 开发：监听源码变更重启 |
-| `npm start` | 生产：直接运行入口 |
-| `npm run db:push` | 根据 `schema.prisma` 同步 SQLite 结构 |
-| `npm run db:seed` | 运行 `prisma/seed.js`（可选：写入管理员、示例学生与咨询师帐号） |
+| Command            | Purpose                              |
+|--------------------|--------------------------------------|
+| `npm run dev`      | Restart on file changes               |
+| `npm start`        | Production entry                       |
+| `npm run db:push`  | Push `schema.prisma` to SQLite        |
+| `npm run db:seed`  | Run `prisma/seed.js` (optional seeds) |
 
-### 前端（`client/`）
+### Client (`client/`)
 
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | Vite 开发服务器，端口 **5173** |
-| `npm run build` | `vite build` |
-| `npm run preview` | 预览构建结果，端口 **4173**（已配置 `/api` 代理） |
+| Command            | Purpose                                              |
+|--------------------|------------------------------------------------------|
+| `npm run dev`      | Vite dev server (**5173**)                           |
+| `npm run build`    | `vite build`                                         |
+| `npm run preview`  | Preview production build (**4173**, `/api` proxied)  |
 
-## 目录结构（简要）
+## Layout
 
 ```
 scwis-fullstack/
-├── client/          # React 应用（入口见 src/main.jsx、路由见 src/App.jsx）
-├── server/          # Express API（入口 src/index.js）
-│   ├── prisma/      # schema、seed
-│   └── .env.example # 环境变量模板
-└── package.json     # 根脚本与 concurrently
+├── client/          # React app (src/main.jsx, src/App.jsx)
+├── server/          # Express API (src/index.js)
+│   ├── prisma/      # schema & seed
+│   └── .env.example
+└── package.json     # root scripts & concurrently
 ```
 
-## API 与健康检查
+## API & health
 
-- 健康检查：`GET /api/health` → `{ "ok": true }`
-- 默认 API 端口：**8788**（可通过环境变量 `PORT` 覆盖）
+- Health: `GET /api/health` → `{ "ok": true }`
+- Default API port: **8788** (override with **`PORT`**)
 
-## 使用 Vercel 部署前端
+## Deploying the frontend (Vercel)
 
-仓库根目录已有 `vercel.json`：只在 **`client/`** 里执行 `npm ci` 与 `npm run build`，输出 **`client/dist`**。
+`vercel.json` runs `npm ci` and `npm run build` under **`client/`** and publishes **`client/dist`**.
 
-在 **Vercel → Project → Settings → Environment Variables**（Production / Preview 按需）中添加：
+In **Vercel → Project → Settings → Environment Variables** (Production / Preview as needed):
 
-| 变量名 | 说明 |
-|--------|------|
-| `VITE_API_BASE_URL` | 你已部署好的 **Express 根地址**，**不要**尾斜杠。例：`https://scwis-api.onrender.com` |
+| Name                 | Description                                                                 |
+|----------------------|-----------------------------------------------------------------------------|
+| `VITE_API_BASE_URL`  | Base URL of your deployed Express app, **no trailing slash**, e.g. `https://scwis-api.onrender.com` |
 
-保存后重新 **Deploy**（该变量会在 `vite build` 时写入前端）。
+Redeploy after saving (the value is baked in at `vite build` time).
 
-若不留此变量，浏览器仍会请求本站 `/api`，在纯静态托管上会得到 HTML，`Unexpected token '<'` 即为该现象。
+If it is unset, the browser calls `/api` on the static host and you may get HTML instead of JSON (`Unexpected token '<'`).
 
-参考 `client/.env.example`。本地开发不要设置（或删掉），继续用根目录 **`npm run dev`** 自带的 `/api` 代理。
+See `client/.env.example`. For local dev, leave it unset and use root **`npm run dev`** for the `/api` proxy.
 
-**注意**：仓库里的 **Express + Prisma 需单独托管**（如 [Render](https://render.com/)、Railway）；服务端已启用 `cors({ origin: true })`，允许跨域前端调用。
+**Note:** Host **Express + Prisma** separately (e.g. [Render](https://render.com/), Railway). The server uses `cors({ origin: true })` for browser clients.
 
 ### Railway / Railpack
 
-仓库根目录有 **`railpack.json`**：`install` 在默认的根目录 **`npm ci` 之后**，再依次执行 **`npm ci --prefix client`** 与 **`npm ci --prefix server`**，这样 `client/node_modules`、`server/node_modules` 会与根目录一并装好，避免出现根目录装了 `concurrently` 但 **`vite`** 未被安装、`vite build` 报 **`not found`** 的情况。（`"...` 沿用 Railpack 自动生成的安装命令 — 参见 [Railpack 配置文档](https://railpack.com/config/file)。）
+The repo includes **`railpack.json`**: after root **`npm ci`**, install runs **`npm ci --prefix client`** and **`npm ci --prefix server`** so `vite` and server deps are present (see [Railpack config](https://railpack.com/config/file)).
 
-**Railway：后端 Variables（必配，否则登录会遇到 `DATABASE_URL` / Prisma）**
+**Railway — backend variables (required for Prisma / login)**
 
-在跑 **Express 的 Service → Variables** 中添加：
+On the **Express** service → **Variables**:
 
-| 变量名 | 示例 |
-|--------|------|
-| `DATABASE_URL` | `file:./dev.db`（与 `server/.env.example` 一致；SQLite 落在 `server/prisma/dev.db`） |
-| `JWT_SECRET` | 足够长的随机串（勿用仓库占位值） |
+| Name            | Example |
+|-----------------|---------|
+| `DATABASE_URL`  | `file:./dev.db` (same idea as `server/.env.example`; SQLite file under `server/prisma/`) |
+| `JWT_SECRET`    | Long random string (not the sample in the repo) |
 
-保存后 **Redeploy**。**`npm start --prefix server`**（仓库默认服务端启动脚本）会在启动前依次：**`prisma db push`**（建表）→ **`prisma/seed.js`**（若尚无初始管理员则创建）→ **启动 API**。若在 Railway **自定义 Start Command**，需自行包含等价步骤，否则会缺表。
+Redeploy. **`npm start --prefix server`** runs **`prisma db push`** → **`prisma/seed.js`** (creates initial admin if missing) → starts the API. Custom start commands must include equivalent steps or tables will be missing.
 
-若仍报 **`User` 表不存在**：检查启动命令是否真的跑到上述 `npm start`、`DATABASE_URL` 是否已设置，并重试一次部署。
+If you still see **table `User` does not exist**, confirm the start command, `DATABASE_URL`, and redeploy.
 
-初始管理员（仅在库里尚无该邮箱时写入）：`admin@campus.local` / `Admin123!`。
+Initial admin (only if that email is absent): `admin@campus.local` / `Admin123!`.
 
-SQLite 若没有挂载 **Volume**：容器重建可能丢库；需要持久数据请挂卷或换 **PostgreSQL**。
+Without a **Volume**, SQLite can be wiped on container rebuild; use a volume or **PostgreSQL** for persistence.
 
-### 报错：Backend returned HTML, not JSON…
+### Error: “Backend returned HTML, not JSON…”
 
-含义：前端把 **API** 的请求当成了静态页，或对端根本没有跑 Express。
+The client expected JSON but received a static page, or the API is not running.
 
-| 场景 | 处理 |
-|------|------|
-| 本地只在 **`client/`** 里执行了 **`npm run dev`** | 在**仓库根目录**执行 **`npm run dev`**，让 Vite（5173）和 Express（8788）一起启动。 |
-| `npm run preview` / 访问 **4173** 查看构建结果 | **另开终端**先运行 **`npm run dev --prefix server`**（API 先有），再预览。 |
-| 部署在 **Vercel / 纯静态托管** | 必须部署可用的 **HTTPS Express**；在项目环境变量里设 **`VITE_API_BASE_URL`**（无尾斜杠），保存后 **重新 Deploy**。 |
+| Situation | Fix |
+|-----------|-----|
+| Only ran **`npm run dev`** inside **`client/`** | Run **`npm run dev`** from the **repo root** so Vite (5173) and Express (8788) both start. |
+| `npm run preview` / port **4173** | In another terminal, run **`npm run dev --prefix server`** first, then preview. |
+| Deployed on **Vercel / static hosting** | Deploy a real **HTTPS** Express API; set **`VITE_API_BASE_URL`** (no trailing slash) and redeploy. |
 
-自检：后端正常时，`GET /api/health` 应返回 JSON，例如：`{"ok":true}`。（本地常为 `http://127.0.0.1:8788/api/health`。）
+Sanity check: `GET /api/health` should return JSON, e.g. `{"ok":true}` (often `http://127.0.0.1:8788/api/health` locally).
 
-## 生产部署注意
+## Production checklist
 
-1. 将 `JWT_SECRET` 设为足够长的随机字符串，不要使用仓库示例值。  
-2. `DATABASE_URL` 指向你有权访问的数据库文件或连接串；部署前执行 `prisma db push` 或迁移策略你自行选择。  
-3. 前端构建后，需将静态资源置于 CDN / 静态托管，或让同一 Node 进程提供静态文件（当前仓库以开发代理为主，生产组合请按你的基础设施调整）。  
-4. 若 Docker / 部分 CI 在 **`NODE_ENV=production`** 下执行 `npm ci` 且不安装 devDependencies，`vite` 会被跳过并报 **`vite: not found`**；本仓库已将 **Vite 与 `@vitejs/plugin-react` 放在 `client` 的 `dependencies`**，避免该问题。
+1. Use a strong, unique **`JWT_SECRET`**, not the sample value.
+2. Point **`DATABASE_URL`** at your database and run **`prisma db push`** or your migration process.
+3. After `vite build`, serve `client/dist` from your CDN/static host or the same Node process (this repo favors the dev proxy; wire production hosting as you prefer).
+4. Where **`NODE_ENV=production`** + `npm ci` omits devDependencies, `vite` can be missing—we keep **Vite** and **`@vitejs/plugin-react`** in **`client`** `dependencies` to avoid **`vite: not found`**.
 
-## 许可
+## License
 
-若未在仓库中另行声明，以项目作者约定为准。
+Unless stated otherwise in the repo, follow the authors’ chosen terms.

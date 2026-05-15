@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "../ApiProvider.jsx";
 
+/** Match English UI copy regardless of browser locale. */
+const DISPLAY_LOCALE = "en-US";
+
 function formatChatTime(ts) {
   if (!ts) return "";
   try {
-    return new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return new Date(ts).toLocaleTimeString(DISPLAY_LOCALE, { hour: "numeric", minute: "2-digit" });
   } catch {
     return "";
   }
@@ -17,7 +20,7 @@ function formatThreadPreviewTime(ts) {
     const now = Date.now();
     const isToday = d.toDateString() === new Date(now).toDateString();
     if (isToday) return formatChatTime(ts);
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return d.toLocaleDateString(DISPLAY_LOCALE, { month: "short", day: "numeric" });
   } catch {
     return "";
   }
@@ -45,6 +48,11 @@ export default function CampusChatHub({ mode }) {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [active?.id, active?.messages?.length]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    api.markCampusChatRead({ threadId: selectedId }).catch(() => {});
+  }, [selectedId, api]);
 
   const bubbleMine = useCallback(
     (msg) => {
@@ -78,9 +86,9 @@ export default function CampusChatHub({ mode }) {
     return (
       <div className="campus-chat-shell">
         <div className="spa-card campus-chat-linked-warn">
-          <h3>尚未绑定学籍号</h3>
+          <h3>Roster student ID not linked</h3>
           <p className="muted">
-            Messages 只对已绑定名册中学籍号的 <strong>Student</strong> 帐号可用。请在管理员后台「Users」中关联有效的学籍编号（应与当前名册中的记录一致）。
+            Messages is only available for <strong>Student</strong> accounts linked to a roster student ID. In the admin portal, open <strong>Users</strong> and link a valid ID that matches an entry in the roster.
           </p>
         </div>
       </div>
@@ -95,8 +103,8 @@ export default function CampusChatHub({ mode }) {
           <h2 className="campus-chat-title">Campus chat</h2>
           <p className="campus-chat-intro">
             {mode === "counselor"
-              ? "在此查看并回复分配给您的咨询会话。信息仅对已授权教职人员可见。"
-              : "与同侪群组及咨询师交流。请仅在合适场景下披露个人信息。"}
+              ? "Review and reply to counseling threads assigned to you. Information is visible only to authorized staff."
+              : "Message peer groups and counselors. Share personal details only when it feels appropriate."}
           </p>
         </div>
         <span className="campus-chat-hero-mark" aria-hidden>
@@ -110,43 +118,55 @@ export default function CampusChatHub({ mode }) {
             <h4 className="campus-chat-aside-title">Inbox</h4>
             <span className="campus-chat-count">{threads.length}</span>
           </div>
-          {threads.length === 0 ? (
-            <p className="muted campus-chat-empty">No conversations visible for this account.</p>
-          ) : (
-            <ul className="campus-chat-thread-list" role="listbox" aria-label="Message threads">
-              {threads.map((t) => {
-                const last = Array.isArray(t.messages) ? t.messages[t.messages.length - 1] : null;
-                const preview =
-                  typeof last?.body === "string" ? (last.body.length > 52 ? `${last.body.slice(0, 49)}…` : last.body) : "";
-                const glyph = t.kind === "counselor" ? "⚕️" : "🌿";
-                const stamp = formatThreadPreviewTime(last?.ts);
+          <div className="campus-chat-threads-scroll">
+            {threads.length === 0 ? (
+              <p className="muted campus-chat-empty">No conversations visible for this account.</p>
+            ) : (
+              <ul className="campus-chat-thread-list" role="listbox" aria-label="Message threads">
+                {threads.map((t) => {
+                  const last = Array.isArray(t.messages) ? t.messages[t.messages.length - 1] : null;
+                  const preview =
+                    typeof last?.body === "string" ? (last.body.length > 52 ? `${last.body.slice(0, 49)}…` : last.body) : "";
+                  const glyph = t.kind === "counselor" ? "⚕️" : "🌿";
+                  const stamp = formatThreadPreviewTime(last?.ts);
+                  const unread = typeof t.unreadCount === "number" ? t.unreadCount : 0;
+                  const unreadLabel = unread > 9 ? "9+" : String(unread);
+                  const showUnreadBadge = unread > 0 && selectedId !== t.id;
 
-                return (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      className={`campus-chat-thread-card ${selectedId === t.id ? "campus-chat-thread-active" : ""}`}
-                      onClick={() => setSelectedId(t.id)}
-                      role="option"
-                      aria-selected={selectedId === t.id}
-                    >
-                      <span className={`campus-chat-thread-avatar ${t.kind === "counselor" ? "campus-chat-avatar-cdr" : ""}`} aria-hidden>
-                        <span>{glyph}</span>
-                      </span>
-                      <span className="campus-chat-thread-body">
-                        <span className="campus-chat-thread-top flex-between">
-                          <span className="campus-chat-thread-kind">{t.kind === "peer" ? "Peer pod" : "Counseling"}</span>
-                          {stamp ? <span className="campus-chat-thread-time">{stamp}</span> : null}
+                  return (
+                    <li key={t.id}>
+                      <button
+                        type="button"
+                        className={`campus-chat-thread-card ${selectedId === t.id ? "campus-chat-thread-active" : ""}`}
+                        onClick={() => setSelectedId(t.id)}
+                        role="option"
+                        aria-selected={selectedId === t.id}
+                      >
+                        <span className="campus-chat-thread-avatar-wrap">
+                          <span className={`campus-chat-thread-avatar ${t.kind === "counselor" ? "campus-chat-avatar-cdr" : ""}`} aria-hidden>
+                            <span>{glyph}</span>
+                          </span>
+                          {showUnreadBadge ? (
+                            <span className="campus-chat-thread-unread-badge" aria-label={`${unread} unread messages`}>
+                              {unreadLabel}
+                            </span>
+                          ) : null}
                         </span>
-                        <span className="campus-chat-thread-title">{t.title}</span>
-                        {preview ? <span className="campus-chat-thread-preview muted">{preview}</span> : null}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                        <span className="campus-chat-thread-body">
+                          <span className="campus-chat-thread-top flex-between">
+                            <span className="campus-chat-thread-kind">{t.kind === "peer" ? "Peer pod" : "Counseling"}</span>
+                            {stamp ? <span className="campus-chat-thread-time">{stamp}</span> : null}
+                          </span>
+                          <span className="campus-chat-thread-title">{t.title}</span>
+                          {preview ? <span className="campus-chat-thread-preview muted">{preview}</span> : null}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </aside>
         <section className="campus-chat-pane" aria-label="Active conversation">
           {!active ? (
@@ -181,14 +201,17 @@ export default function CampusChatHub({ mode }) {
                         "Participant";
                   return (
                     <div key={m.id} className={`campus-chat-row ${mine ? "campus-chat-row-mine" : ""} ${system ? "campus-chat-row-sys" : ""}`}>
+                      {mine && !system ? <span className="campus-chat-row-spacer" aria-hidden /> : null}
                       {!mine && !system ? (
                         <span className="campus-chat-avatar-small" aria-hidden>
                           {(who || "?").slice(0, 1).toUpperCase()}
                         </span>
                       ) : null}
-                      {system ? <span className="campus-chat-avatar-small campus-chat-avatar-sys" aria-hidden>
+                      {system ? (
+                        <span className="campus-chat-avatar-small campus-chat-avatar-sys" aria-hidden>
                           ⓘ
-                        </span> : null}
+                        </span>
+                      ) : null}
                       <div className="campus-chat-turn">
                         {!system ? (
                           <div className="campus-chat-meta">

@@ -189,6 +189,11 @@ export function ApiProvider({ children }) {
         mutate(`/api/cases/${encodeURIComponent(caseId)}/follow-up`, { method: "POST", body: JSON.stringify(payload || {}) }).then(setSnapshot),
       archiveCase: (caseId) =>
         mutate(`/api/cases/${encodeURIComponent(caseId)}/archive`, { method: "POST" }).then(setSnapshot),
+      setCaseAiFeedback: (caseId, value) =>
+        mutate(`/api/cases/${encodeURIComponent(caseId)}/ai-feedback`, {
+          method: "POST",
+          body: JSON.stringify({ value }),
+        }).then(setSnapshot),
       patchSettings: (patch) => mutate("/api/settings", { method: "PATCH", body: JSON.stringify(patch) }).then(setSnapshot),
       reset: () => mutate("/api/reset", { method: "POST" }).then(setSnapshot),
       addStaff: () => mutate("/api/staff/placeholder", { method: "POST" }).then(setSnapshot),
@@ -196,6 +201,8 @@ export function ApiProvider({ children }) {
         mutate("/api/bookings", { method: "POST", body: JSON.stringify(body || {}) }).then(setSnapshot),
       sendCampusChat: (payload) =>
         mutate("/api/chat/send", { method: "POST", body: JSON.stringify(payload || {}) }).then(setSnapshot),
+      markCampusChatRead: (payload) =>
+        mutate("/api/chat/read", { method: "POST", body: JSON.stringify(payload || {}) }).then(setSnapshot),
       listUsers: async () => {
         const r = await fetch(apiUrl("/api/admin/users"), { headers: { ...bareAuthHeaders } });
         const data = await r.json().catch(() => ({}));
